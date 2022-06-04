@@ -1,0 +1,372 @@
+Comparing files profiler.c and C:\USERS\WL\DOCUMENTS\PSOC\LINEFOLLOWER\MAZE.CYDSN\PROFILER.C
+***** profiler.c
+
+#include "em_device.h"
+#include "resources.h"
+***** C:\USERS\WL\DOCUMENTS\PSOC\LINEFOLLOWER\MAZE.CYDSN\PROFILER.C
+
+#include "project.h"
+#include "resources.h"
+*****
+
+***** profiler.c
+#include "profiler.h"
+#include "Tachometer.h"
+#include "Reflectance.h"
+#include "LaunchPad.h"
+#include "Motor.h"
+#include "Maze.h"
+***** C:\USERS\WL\DOCUMENTS\PSOC\LINEFOLLOWER\MAZE.CYDSN\PROFILER.C
+#include "profiler.h"
+//#include "Tachometer.h"
+#include "Reflectance.h"
+//#include "LaunchPad.h"
+#include "Motor_withPI.h"
+#include "Maze.h"
+*****
+
+***** profiler.c
+#include "configure.h"
+#include "Logging.h"
+#define DATALOG
+
+***** C:\USERS\WL\DOCUMENTS\PSOC\LINEFOLLOWER\MAZE.CYDSN\PROFILER.C
+#include "configure.h"
+
+*****
+
+***** profiler.c
+#define COMMAND_FACTOR  7
+#define MINRPM  (1600)
+
+// 220mm per 360 tick of two wheels.
+#define CURRENT_DISTANCE  ((LeftSteps + RightSteps) * 11L / (2*36))
+#define DEGREE(x)  ((x*149)/18)
+
+int speed = 0;
+int slowdistance, startdistance, guarddistance, wait_counter;
+
+// Exchange data
+volatile unsigned int segment_length, node_configuration, real_direction = north, profiler_data_ready = 0,
+    profiler_queue_empty = 1, profiler_error_code = no_profiler_error;
+
+***** C:\USERS\WL\DOCUMENTS\PSOC\LINEFOLLOWER\MAZE.CYDSN\PROFILER.C
+#define COMMAND_FACTOR  7
+#define MINRPM  (1250)
+
+// 90 pulses*2 = 65.35mm        
+// 90 : 66 => 30 : 22   =>  15 : 11
+// 90 : 65              =>  18 : 13
+// 1242 - 360deg.  => 69 steps : 20 deg
+
+#define LeftSteps   (QuadDec_Left_GetCounter())
+#define RightSteps  (QuadDec_Right_GetCounter())
+#define CURRENT_DISTANCE  ((LeftSteps + RightSteps) * 13 / 36)
+#define DEGREE(x)  ((x*69)/20)
+
+*****
+
+***** profiler.c
+
+
+***** C:\USERS\WL\DOCUMENTS\PSOC\LINEFOLLOWER\MAZE.CYDSN\PROFILER.C
+
+int speed = 0, brakepath2;
+int slowdistance, startdistance, guarddistance, wait_counter;
+
+// Exchange data
+volatile unsigned int segment_length, node_configuration, real_direction = north, profiler_data_ready = 0, 
+    profiler_queue_empty = 1, profiler_error_code = no_profiler_error;
+
+
+*****
+
+***** profiler.c
+  Motor_Speed(speed, speed);
+  LaunchPad_Output(RED);
+  LaunchPad_Output1(RED);
+}
+***** C:\USERS\WL\DOCUMENTS\PSOC\LINEFOLLOWER\MAZE.CYDSN\PROFILER.C
+  Motor_Speed(speed, speed);
+}
+*****
+
+***** profiler.c
+
+
+//#define BITBAND_SRAM_BASE BITBAND_RAM_BASE
+#define BITBAND_SRAM(x, b)  (*((__IO uint32_t *) (BITBAND_RAM_BASE +  (((uint32_t)(volatile const uint32_t *)&(x)) - SRAM_BASE 
+ )*32 + (b)*4)))
+
+***** C:\USERS\WL\DOCUMENTS\PSOC\LINEFOLLOWER\MAZE.CYDSN\PROFILER.C
+
+#define SRAM_BASE         CYREG_SRAM_DATA_MBASE
+#define BITBAND_SRAM_BASE (0x22000000)
+#define BITBAND_SRAM(x, b)  (*((__IO uint32_t *) (BITBAND_SRAM_BASE +  (((uint32_t)(volatile const uint32_t *)&(x)) - SRAM_BASE
+  )*32 + (b)*4)))
+
+*****
+
+***** profiler.c
+      photo_sensor = current_sensor;                                            \
+      data_log(log_turn | photo_sensor, 1);                                     \
+      if ((DIFF) < slow_difference) {                                           \
+***** C:\USERS\WL\DOCUMENTS\PSOC\LINEFOLLOWER\MAZE.CYDSN\PROFILER.C
+      photo_sensor = current_sensor;                                            \
+      if ((DIFF) < slow_difference) {                                           \
+*****
+
+***** profiler.c
+unsigned int make_turn_left(void) {  // Turn left
+    MAKE_TURN((RightSteps - LeftSteps), (4), -speed, speed)
+}
+***** C:\USERS\WL\DOCUMENTS\PSOC\LINEFOLLOWER\MAZE.CYDSN\PROFILER.C
+unsigned int make_turn_left(void) {  // Turn left
+    MAKE_TURN((RightSteps - LeftSteps), (6), -speed, speed)
+}
+    
+unsigned int make_turn_right(void) {  // Turn right.
+    MAKE_TURN((LeftSteps - RightSteps), (1), speed, -speed)
+}
+*****
+
+***** profiler.c
+
+unsigned int make_turn_right(void) {  // Turn right.
+    MAKE_TURN((LeftSteps - RightSteps), (3), speed, -speed)
+}
+
+typedef enum {
+***** C:\USERS\WL\DOCUMENTS\PSOC\LINEFOLLOWER\MAZE.CYDSN\PROFILER.C
+
+typedef enum {
+*****
+
+***** profiler.c
+  unsigned int command, command_param, total_length, ii, cmd_status;
+  int brakepath1, brakepath2;
+
+***** C:\USERS\WL\DOCUMENTS\PSOC\LINEFOLLOWER\MAZE.CYDSN\PROFILER.C
+  unsigned int command, command_param, total_length, ii, cmd_status;
+  int brakepath1; //, brakepath2;
+
+*****
+
+***** profiler.c
+          if (speed == 0) startdistance = CURRENT_DISTANCE;
+          // Расстояние, необходимое для торможения, если максимальная ско
+***** C:\USERS\WL\DOCUMENTS\PSOC\LINEFOLLOWER\MAZE.CYDSN\PROFILER.C
+          if (speed == 0) startdistance = CURRENT_DISTANCE;
+          //     else            startdistance = CURRENT_DISTANCE + data.sensor_offset;
+          // 90 pulses*2 = 65.35mm
+          // Расстояние, необходимое для торможения, если максимальная ско
+*****
+
+***** profiler.c
+рость не набирается:
+          //  (220mm/100) * (V^2 - v^2) / (4 * a * 400*60)  + distance/2
+          brakepath1 = (speed*speed - data.minspeed*data.minspeed)/data.acceleration * 11/480000 + total_length/2;
+          // Расстояние, необходимое для торможения от максимальной скоро�
+�ти:
+          // (220mm/100) * (V^2 - v^2) / (2 * a * 400*60)
+          brakepath2 = (data.maxspeed*data.maxspeed - data.minspeed*data.minspeed)/data.acceleration*11/240000;
+          // используем вариант с самым коротким тормозным путём
+***** C:\USERS\WL\DOCUMENTS\PSOC\LINEFOLLOWER\MAZE.CYDSN\PROFILER.C
+рость не набирается:
+          //  (65mm/10) * (V^2 - v^2) / (4 * a * 1000*60)  + distance/2
+          brakepath1 = ((speed - data.minspeed)*(speed + data.minspeed))/(data.acceleration) * 11/40000 + total_length/2;
+          // Расстояние, необходимое для торможения от максимальной скоро�
+�ти, вычисляется на этапе инициализации:
+          // (220mm/100) * (V^2 - v^2) / (2 * a * 400*60)
+          // Расчитывается на стадии инициализации.
+          //        brakepath2 = (data.maxspeed*data.maxspeed - data.minspeed*data.minspeed)/data.acceleration * 6535/120000000
+0;
+          // используем вариант с самым коротким тормозным путём
+*****
+
+***** profiler.c
+градусов,
+          // 2- разворот на 180 градусов, 3-влево на 90 градусов.
+          // любой другой аргумент приводит к отмене очереди команд. Напра�
+***** C:\USERS\WL\DOCUMENTS\PSOC\LINEFOLLOWER\MAZE.CYDSN\PROFILER.C
+градусов,
+          // 2- разворот на 180 градусов, 3-влево на 90 градусов. Соответствует t
+ypedef enum rotation_dir_t.
+          // любой другой аргумент приводит к отмене очереди команд. Напра�
+*****
+
+***** profiler.c
+              stop_difference = (RightSteps - LeftSteps) + ((degree == 180) ? DEGREE(135) : DEGREE(45));
+              slow_difference = (RightSteps - LeftSteps) + ((degree == 180) ? DEGREE(120) : DEGREE(60));
+              fail_difference = (RightSteps - LeftSteps) + ((degree == 180) ? DEGREE(270) : DEGREE(135));
+***** C:\USERS\WL\DOCUMENTS\PSOC\LINEFOLLOWER\MAZE.CYDSN\PROFILER.C
+              stop_difference = (RightSteps - LeftSteps) + ((degree == 180) ? DEGREE(135) : DEGREE(45));
+              slow_difference = (RightSteps - LeftSteps) + ((degree == 180) ? DEGREE(100) : DEGREE(45));
+              fail_difference = (RightSteps - LeftSteps) + ((degree == 180) ? DEGREE(270) : DEGREE(135));
+*****
+
+***** profiler.c
+              stop_difference = (LeftSteps - RightSteps) + ((degree == 180) ? DEGREE(135) : DEGREE(45));
+              slow_difference = (LeftSteps - RightSteps) + ((degree == 180) ? DEGREE(120) : DEGREE(60));
+              fail_difference = (LeftSteps - RightSteps) + ((degree == 180) ? DEGREE(270) : DEGREE(135));
+***** C:\USERS\WL\DOCUMENTS\PSOC\LINEFOLLOWER\MAZE.CYDSN\PROFILER.C
+              stop_difference = (LeftSteps - RightSteps) + ((degree == 180) ? DEGREE(135) : DEGREE(45));
+              slow_difference = (LeftSteps - RightSteps) + ((degree == 180) ? DEGREE(100) : DEGREE(45));
+              fail_difference = (LeftSteps - RightSteps) + ((degree == 180) ? DEGREE(270) : DEGREE(135));
+*****
+
+***** profiler.c
+              startdistance = CURRENT_DISTANCE;
+              brakepath1 = (total_length/2) - (data.minspeed*data.minspeed)/data.acceleration * 11/480000;
+              // используем вариант с самым коротким тормозным путём
+              slowdistance = startdistance + total_length - data.sensor_offset - brakepath1;
+***** C:\USERS\WL\DOCUMENTS\PSOC\LINEFOLLOWER\MAZE.CYDSN\PROFILER.C
+              startdistance = CURRENT_DISTANCE;
+              brakepath1 = (total_length/2) - (data.minspeed*data.minspeed)/(data.acceleration) * 11/40000;
+              slowdistance = startdistance + total_length - data.sensor_offset - brakepath1;
+*****
+
+***** profiler.c
+        case blind_run:
+          LaunchPad_Output1(BLUE);
+          if ((read_command(1) & COMMAND_MASK) != command_forward){
+***** C:\USERS\WL\DOCUMENTS\PSOC\LINEFOLLOWER\MAZE.CYDSN\PROFILER.C
+        case blind_run:
+          if ((read_command(1) & COMMAND_MASK) != command_forward){
+*****
+
+***** profiler.c
+                  state = idle;
+                  LaunchPad_Output1(0);
+              }
+***** C:\USERS\WL\DOCUMENTS\PSOC\LINEFOLLOWER\MAZE.CYDSN\PROFILER.C
+                  state = idle;
+              }
+*****
+
+***** profiler.c
+              Motor_Disable();
+              LaunchPad_Output1(0);
+          } else   LaunchPad_Output1(GREEN);
+          break;
+***** C:\USERS\WL\DOCUMENTS\PSOC\LINEFOLLOWER\MAZE.CYDSN\PROFILER.C
+              Motor_Disable();
+          }
+          break;
+*****
+
+***** profiler.c
+
+void test_profile(void) {
+  data_log_init();
+  //  block_profiler(1);
+***** C:\USERS\WL\DOCUMENTS\PSOC\LINEFOLLOWER\MAZE.CYDSN\PROFILER.C
+
+#ifdef DEBUG_LOG
+#define LOG_SIZE        4096
+static int log_array[LOG_SIZE], *log_ptr = log_array, logcount = 0;
+#endif
+#include "i2c_drv.h"
+
+void test_profile(void) {
+  log_ptr = log_array+1;
+  logcount = 0;
+  //  block_profiler(1);
+*****
+
+***** profiler.c
+  put_command(command_entrance | (data.cell_step/2));
+  put_command(command_forward);
+  put_command(command_turn | left);
+  put_command(command_forward | 350);
+  put_command(command_forward | 300);
+  put_command(command_wait | 1 * FRAMESCANPERSECOND);
+  put_command(command_turn | back);
+  put_command(command_wait | 1 * FRAMESCANPERSECOND);
+  put_command(command_forward | 300);
+  put_command(command_forward | 350);
+  put_command(command_turn | right);
+  put_command(command_forward);
+  put_command(command_finish | 100);
+  //  block_profiler(0);
+  data_log_finish();
+}
+
+void PendSVInit(void) {
+  NVIC_SetPriority(PendSV_IRQn, PendSV_IRQ_priority);
+}
+***** C:\USERS\WL\DOCUMENTS\PSOC\LINEFOLLOWER\MAZE.CYDSN\PROFILER.C
+  put_command(command_entrance | (data.cell_step/2));
+  put_command(command_forward | 200);
+  put_command(command_forward | 300);
+  put_command(command_turn | right);
+  put_command(command_forward | 170);
+  put_command(command_forward | 160);
+  put_command(command_turn | right);
+  put_command(command_forward | 530);
+  put_command(command_turn | back);
+  put_command(command_wait | 2 * FRAMESCANPERSECOND);
+  put_command(command_forward | 530);
+  put_command(command_turn | left);
+  put_command(command_forward | 160);
+  put_command(command_turn | left);
+  put_command(command_forward | 300);
+  put_command(command_turn | right);
+  put_command(command_forward | 170);
+  put_command(command_turn | left);
+  put_command(command_forward | 200);
+  put_command(command_finish | 50);
+  put_command(command_wait | 2 * FRAMESCANPERSECOND);
+  //  block_profiler(0);
+  while (profiler_queue_empty == 0) {
+
+      if (profiler_data_ready) {
+          profiler_data_ready = 0;
+#ifdef DEBUG_LOG
+          if (1) {
+              *log_ptr++ = segment_length;
+              *log_ptr++ = node_configuration;
+              logcount++;
+          }
+#endif
+      }
+  }
+  LED_Write(1);
+#ifdef DEBUG_LOG
+  log_array[0] = logcount;
+  i2c_wr_reg16(0xA0 | ((LOG_ADDRESS & 0x10000)>> 15), (LOG_ADDRESS & 0xFFFF), (uint8_t*)log_array, (logcount*8)+4);
+#endif
+  LED_Write(0);
+}
+*****
+
+***** profiler.c
+
+void PendSV_Handler(void) {
+  profiler();
+}
+***** C:\USERS\WL\DOCUMENTS\PSOC\LINEFOLLOWER\MAZE.CYDSN\PROFILER.C
+
+
+CY_ISR_PROTO (PendSV_Handler);
+
+void PendSVInit(void) {
+  // Расстояние, необходимое для торможения от максимальной скорости:
+  //  (66mm/10)^2 * (V^2 - v^2) / (4 * a * 1000*60^2)  + distance/2
+  brakepath2 = ((data.maxspeed - data.minspeed)*(data.maxspeed + data.minspeed))/(data.acceleration) * 11/20000;
+
+  CyIntSetSysVector(CY_INT_PEND_SV_IRQN, PendSV_Handler);
+  //    NVIC_SetPriority(PendSV_IRQn, PendSV_IRQ_priority);
+  SCB->SHP[(((uint32_t)PendSV_IRQn) & 0xFUL)-4UL] = (uint8_t)((PendSV_IRQ_priority << (8U - __NVIC_PRIO_BITS)) & (uint32_t)0xFF
+UL);
+}
+*****
+
+***** profiler.c
+***** C:\USERS\WL\DOCUMENTS\PSOC\LINEFOLLOWER\MAZE.CYDSN\PROFILER.C
+
+CY_ISR (PendSV_Handler) {
+  profiler();
+}
+*****
+
