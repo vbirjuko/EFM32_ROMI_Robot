@@ -282,38 +282,51 @@ uint32_t dump_log(instance_t *instance, int * none) {
 }
 
 uint32_t show_path(instance_t * instance, int * none) {
-    rotation_dir_t *turn_ptr;
-    int   *length_ptr, i;
-    UNUSED(none);
+//  rotation_dir_t *turn_ptr;
+  int   *length_ptr, i;
+  UNUSED(none);
 
-    turn_ptr = data.path;
-    length_ptr = data.length;
+  //    turn_ptr = data.path;
+  length_ptr = data.length;
 
-    for (i = 0; i < data.pathlength; i++) {
-        instance->UART_OutUDec(i);
-        instance->UART_OutChar('\t');
+  for (i = 0; i < data.pathlength; i++) {
+      instance->UART_OutUDec(i);
+      instance->UART_OutChar('\t');
 
-        instance->UART_OutUDec(*length_ptr);
-        instance->UART_OutChar('\t');
+      switch (*length_ptr & COMMAND_MASK){
+        case command_forward:
+          instance->UART_OutString("forward ");
+          instance->UART_OutUDec(*length_ptr & ~COMMAND_MASK);
+          instance->UART_OutString("\r\n");
+          break;
 
-        switch (*turn_ptr) {
-        case straight:
-            instance->UART_OutString("straight\r\n");
-            break;
-        case right:
-            instance->UART_OutString("right\r\n");
-            break;
-        case left:
-            instance->UART_OutString("left\r\n");
-            break;
-        case back:
-            instance->UART_OutString("BACK???\r\n");
-            break;
-        }
-        turn_ptr++;
-        length_ptr++;
-    }
-    return 0;
+        case command_turn:
+          instance->UART_OutString("turn ");
+          switch (*length_ptr & ~COMMAND_MASK) {
+            case left:
+              instance->UART_OutString("left\r\n");
+              break;
+            case right:
+              instance->UART_OutString("right\r\n");
+              break;
+            case back:
+              instance->UART_OutString("BACK???\r\n");
+              break;
+            case straight:
+              instance->UART_OutString("straight\r\n");
+              break;
+          }
+          break;
+
+        default:
+          instance->UART_OutString("Command ");
+          instance->UART_OutUDec(*length_ptr & COMMAND_MASK);
+          instance->UART_OutString("\r\n");
+          break;
+      }
+      length_ptr++;
+  }
+  return 0;
 }
 
 uint32_t write_eeprom_config(instance_t *instance, int * none) {

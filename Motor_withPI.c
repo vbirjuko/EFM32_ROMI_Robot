@@ -9,15 +9,15 @@
 #include "resources.h"
 #include "Logging.h"
 
-#define ENABLE_PORT     gpioPortB
+#define ENABLE_PORT           gpioPortB
 #define ENABLE_LEFT_PIN            (12)
 #define ENABLE_RIGHT_PIN           (11)
 #define DIRECTION_PORT_LEFT   gpioPortD
 #define DIRECTION_PORT_RIGHT  gpioPortD
-#define DIRECTION_LEFT	(0)
-#define DIRECTION_RIGHT	(1)
-#define SLEEP_PORT      gpioPortD
-#define SLEEP_PIN       (4)
+#define DIRECTION_LEFT	            (3)
+#define DIRECTION_RIGHT	            (2)
+#define SLEEP_PORT            gpioPortD
+#define SLEEP_PIN                   (4)
 
 // 50 000 000 / 4 * 60 * 100 / 360
 #define T_CONSTANT  (208333333)

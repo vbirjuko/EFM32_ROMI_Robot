@@ -79,7 +79,7 @@ void app_init(void)
       spi_read_eeprom(EEPROM_COPY_ADDRESS, (unsigned char *)&data, sizeof(data));
       crc_err = calc_crc32((unsigned char *)&data, sizeof(data));
       if (crc_err == 0) {
-          putstr(2, 4, "Recovered", 0);
+          putstr(2, 4, " Recovered.", 0);
           update_display();
       }
 

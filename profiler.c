@@ -21,7 +21,7 @@
 #define MINRPM  (1600)
 
 // 220mm per 360 tick of two wheels.
-#define CURRENT_DISTANCE  ((LeftSteps + RightSteps) * 11L / (2*36))
+#define CURRENT_DISTANCE  (((int32_t)LeftSteps + (int32_t)RightSteps) * 11L / (2*36))
 #define DEGREE(x)  ((x*149)/18)
 
 int speed = 0;
@@ -268,7 +268,7 @@ unsigned int back_run(void) {
           if (CURRENT_DISTANCE > slowdistance) {
               if ((speed += data.acceleration) > data.maxspeed) speed = data.maxspeed;
           } else {
-              if ((speed -= data.acceleration) > data.turnspeed) speed = data.turnspeed;
+              if ((speed -= data.acceleration) < data.turnspeed) speed = data.turnspeed;
           }
           Motor_Speed(-speed, -speed);
       } else {

@@ -13,7 +13,10 @@
 #include "profiler.h"
 #include "Logging.h"
 #include "rand.h"
-//#include "math.h"
+#include "crc.h"
+
+
+void Search_Short_Way_with_turns(void);
 
 #define MAX_PATH_LENGTH (sizeof(data.path)/sizeof(data.path[0]))
 rotation_dir_t path[MAX_PATH_LENGTH];
@@ -53,24 +56,6 @@ rotation_dir_t SelectTurn(unsigned int available_directions, const unsigned int 
     return back;
 }
 
-// simplifyPath analyzes the path[] array and reduces all the
-// back turns. For example: Right turn + Back + Right turn = Straight.
-void simplifyPath(void) {
-    int total_angle = straight;
-    int i;
-
-    // only simplify the path if the second-to-last turn was a "Back"
-    if(data.pathlength < 3 || path[data.pathlength - 2] != back) return;
-
-
-    for(i = 1; i <= 3; i++) total_angle += path[data.pathlength - i];
-    total_angle &= TURN_MASK;
-    path[data.pathlength - 3] = (rotation_dir_t)total_angle;
-    // The path is now two steps shorter.
-    data.pathlength -= 2;
-}
-
-
 void update_coordinate (coordinate_t *current_coordinate, unsigned int length, bearing_dir_t moving_direction) {
 	switch (moving_direction) {
 		case north:	current_coordinate->north += length;	break;
@@ -81,38 +66,35 @@ void update_coordinate (coordinate_t *current_coordinate, unsigned int length, b
 }
 
 unsigned int PlayMaze(void) {
-    unsigned int step=0;
+    int step=0, cell_step;
 
+    cell_step = (data.cell_step) ? data.cell_step : 100;
     if (data.pathlength == 0) return 1;
-    copy_data_dma(data.path, path, data.pathlength);
-    copy_data32_dma((uint32_t*)data.length, (uint32_t*)length, data.pathlength);
 
+    data_log_init();
     while (put_command(command_wait | 2 * FRAMESCANPERSECOND)) continue;
-    while (put_command(command_entrance | data.cell_step)) continue;
-    while(dma_flag) continue;
+    while (put_command(command_entrance | cell_step)) continue;
 
-    while (put_command(command_forward | length[step])) continue;
-    do {
-
-        if (path[step] == straight) {
-            while (put_command(command_forward | length[++step])) continue;
-        } else {
-            if (path[step] == back) break;
-            while (put_command(command_turn | path[step++])) continue;
-            while (put_command(command_forward | length[step])) continue;
-        }
-    } while(1);
+    while (step < data.pathlength) {
+        while (put_command(data.length[step])) continue;
+        step++;
+    };
     while (put_command(command_finish)) continue;
     while (put_command(command_wait | 2 * FRAMESCANPERSECOND)) continue;
     while (profiler_queue_empty == 0) continue;
     profiler_data_ready = 0;
+    data_log_finish();
     return 0;
 }
 
 void SpeedPlay(void) {
-  squareXY(0, 0, 63, 128, 0);
+  squareXY(0, 0, 63, 127, 0);
+  update_display();
   show_number(data.runnumber, 0);
-  PlayMaze();
+  if (PlayMaze()) {
+      putstr(0, 4, "No Route", 0);
+      while (kbdread() != KEY_DOWN)continue;
+  }
 }
 
 // The solveMaze() function works by applying a Luc-Tremo algorithm.
@@ -151,6 +133,7 @@ unsigned int solveMaze(void) {
       last_index = 0;
       data.pathlength = 0;
       data.green_cell_nr = 0;
+      data.red_cell_nr = 0;
 
       map[0].coordinate.north = my_coordinate.north;
       map[0].coordinate.east  = my_coordinate.east;
@@ -283,19 +266,12 @@ unsigned int solveMaze(void) {
               switch (check_color()) {
                 case red:
                   data.red_cell_nr = current_index;
-
-                  // для четырёх команд в буфере место должно быть,
-                  // поэтому положим в очередь без проверки.
-                  put_command(command_turn | back);
-                  put_command(command_back | 100);
-                  put_command(command_wait | 2 * FRAMESCANPERSECOND);
-                  if (data.cell_step) put_command(command_entrance | data.cell_step);
-                  else                put_command(command_entrance | 150);
+                  found_red = 1;
                   break;
 
                 case green:
                   data.green_cell_nr = current_index;
-                  put_command(command_wait | 2 * FRAMESCANPERSECOND);
+//                  put_command(command_wait | 2 * FRAMESCANPERSECOND);
                   break;
 
                 default:
@@ -393,15 +369,6 @@ unsigned int solveMaze(void) {
           // left=3      +=      south=2         east=1   => 0
           turn_direction += (back_bearing - move_direction);
           turn_direction &= TURN_MASK;
-//          play = 0;
-//          for (ii = 0; ii < (unsigned int)data.pathlength; ii++) {
-//              while (put_command(length[ii]));
-//              if ((length[ii] & COMMAND_MASK) == command_forward) play++;
-//              if ((length[ii] & COMMAND_MASK) == command_turn) {
-//                  move_direction += length[ii];
-//                  move_direction &= TURN_MASK;
-//              }
-//          }
           skiplevel = 1;
           pathsequence = 0;
           play = 1;
@@ -417,6 +384,14 @@ unsigned int solveMaze(void) {
                   turn_direction =  length[pathsequence]; // для отображения на дисплее
                   move_direction += length[pathsequence];
                   move_direction &= TURN_MASK;
+
+                  // Заезд на красное поле, пауза и возвращение в лабиринт.
+                  if ((pathsequence == 0) && (found_red) && ((int)current_index == data.red_cell_nr)) {
+                      put_command(command_back | 100);
+                      put_command(command_wait | 2 * FRAMESCANPERSECOND);
+                      if (data.cell_step) put_command(command_entrance | data.cell_step);
+                      else                put_command(command_entrance | 150);
+                  }
                   pathsequence++;
               }
               block_profiler(1);
@@ -478,10 +453,12 @@ unsigned int solveMaze(void) {
   data_log_finish();
 //  copy_data32_dma((uint32_t *)length, (uint32_t *)data.length, data.pathlength);
 //  copy_data_dma(path, data.path, data.pathlength);
-  if (found_red) data.red_cell_nr = found_red;
-
   data.map_size = max_map_cell;
   spi_write_eeprom(ROM_map_addr, (uint8_t *)&map, sizeof(map));
+  Search_Short_Way_with_turns();
+  data.crc32 = calc_crc32((uint8_t*)&data, sizeof(data)-4);
+  spi_write_eeprom(EEPROM_COPY_ADDRESS, (uint8_t *)&data, sizeof(data));
+  spi_write_eeprom(EEPROM_CONFIG_ADDRESS, (uint8_t *)&data, sizeof(data));
   return 0;
 }
 //
@@ -517,7 +494,7 @@ static unsigned int extract_val(void) {
 }
 
 
-void Search_Short_Way(void) {
+void Search_Short_Way_with_turns(void) {
 
   unsigned int k, min_index, destination;
   int	distance;
@@ -532,7 +509,7 @@ void Search_Short_Way(void) {
   // однозначное соответствие: каждый узел делится на два n*2 и (n*2)+1
   // между ними сегмент длиной стоимостью поворота. К четным узлам примыкают
   // меридианальные сегменты - север/юг, к нечетным широтные - запад/восток.
-  // каждый из этих сегментов удлиняется на стоимость прямого прохода узла.
+  // каждый из этих сегментов удлинняется на стоимость прямого прохода узла.
 
   benchmark_start();
   while (dma_flag) continue; // ждём окончания fill_dma path_length[] <= 0xFFFFFFFF
@@ -552,7 +529,7 @@ void Search_Short_Way(void) {
           if ((destination = map[min_index/2].node_link[2*k + (min_index & 0x01)]) != UNKNOWN) {
               //                distance = map2d[min_index].length[k];
               distance =   (map[min_index/2].coordinate.north - map[destination].coordinate.north) +
-                  (map[min_index/2].coordinate.east  - map[destination].coordinate.east);
+                           (map[min_index/2].coordinate.east  - map[destination].coordinate.east);
               if (distance < 0) distance = -distance + data.crosscost;
               else              distance += data.crosscost;
               destination = destination * 2 + (min_index & 0x01);
@@ -570,36 +547,42 @@ void Search_Short_Way(void) {
       }
   }
 
+  // таблица расстояний составлена - надо строить маршрут.
   // Теперь скатываемся вниз для создания кратчайшего пути
   // от старта к финишу.
   data.pathlength = 0; // указатель пути на начало
-  prev_bearing = north;  // не обязательно
-  min_index = data.green_cell_nr << 1 ;  // начинаем с точки 0
-  if (path_length_table[min_index] > path_length_table[min_index+1]) {
-      min_index++;
-      prev_bearing = east;
+  for (unsigned int ii = north; ii <= west; ii++) {
+      if (map[data.green_cell_nr].node_link[ii] != UNKNOWN) {
+          prev_bearing = ii;
+          min_index = (data.green_cell_nr << 1) | (ii & 0x01);
+          break;
+      }
   }
-  // 1 line offset
+
+//  prev_bearing = north;
+//  min_index = (data.green_cell_nr << 1);  // начинаем с того места где находимся и куда повернуты
+//    if (path_length_table[min_index] > path_length_table[min_index+1]) {
+//        min_index++;
+//        prev_bearing = east;
+//    }
   while (path_length_table[min_index]) {
       for (k = 0; k < 3; k++) {
           if (k < 2) {
               if ((destination = map[min_index/2].node_link[2*k + (min_index & 0x01)]) != UNKNOWN) {
                   distance =   (map[min_index/2].coordinate.north - map[destination].coordinate.north) +
                       (map[min_index/2].coordinate.east  - map[destination].coordinate.east);
-                  if (distance < 0) distance = -distance + data.crosscost;
-                  else              distance += data.crosscost;
+                  if (distance < 0) distance = -distance;
+                  // до этого destination был индекс в карте,
+                  // а теперь будет индексом в таблице расстояний
                   destination = destination*2 + (min_index & 0x01);
                   if ((path_length_table[min_index] - distance) == (path_length_table[destination])) {
                       bearing = (bearing_dir_t)((min_index & 0x01) + 2*k);
-                      path[data.pathlength] = (rotation_dir_t)(bearing - prev_bearing);
-                      path[data.pathlength] &= TURN_MASK;
-                      prev_bearing = bearing;
-                      if ((int)(min_index >> 1) != data.green_cell_nr) {
-                          data.pathlength++;
-                          length[data.pathlength] = distance-data.crosscost;  // тут проблема возможно
-                      } else {
-                          length[data.pathlength] = distance-data.crosscost;  // тут проблема возможно
+                      if (bearing != prev_bearing) {
+                          data.length[data.pathlength++] = (command_turn | ((bearing - prev_bearing) & TURN_MASK));
                       }
+                      data.length[data.pathlength++] = (command_forward | distance);
+
+                      prev_bearing = bearing;
                       min_index = destination;
                       break;
                   }
@@ -612,30 +595,7 @@ void Search_Short_Way(void) {
           }
       }
   }
-
-  path[data.pathlength++] = back;
-  calculation_time= benchmark_stop();
-
-  copy_data_dma(path, data.path, data.pathlength);
-  copy_data_dma((uint8_t *) length, (uint8_t *)data.length, (data.pathlength) * sizeof(length[0]));
-}
-
-void Explore_Maze(void) {
-  squareXY(0, 0, 127, 63, 0);
-  update_display();
-  if (data.runnumber) {
-      show_number(data.runnumber, 0);
-  }
-  if (solveMaze()) {
-      while (kbdread() != KEY_DOWN);
-  }
-
-}
-
-void DrawMap(void) {
-  spi_read_eeprom(ROM_map_addr, (uint8_t *)&map, sizeof(map));
-  Draw_Map();
-  while(kbdread() != KEY_DOWN) continue;
+  return;
 }
 
 unsigned int search_way_simple(unsigned int start, unsigned int finish, bearing_dir_t my_bearing){
@@ -723,4 +683,31 @@ unsigned int search_way_simple(unsigned int start, unsigned int finish, bearing_
       }
   }
   return 0;
+}
+
+void Explore_Maze(void) {
+  squareXY(0, 0, 127, 63, 0);
+  update_display();
+  if (data.runnumber) {
+      show_number(data.runnumber, 0);
+  }
+  if (solveMaze()) {
+      while (kbdread() != KEY_DOWN);
+  }
+
+}
+
+void DrawMap(void) {
+  spi_read_eeprom(ROM_map_addr, (uint8_t *)&map, sizeof(map));
+  Draw_Map();
+  while(kbdread() != KEY_DOWN) continue;
+}
+
+void SearchShortWay(void) {
+  Search_Short_Way_with_turns();
+  Draw_Map();
+  data.crc32 = calc_crc32((uint8_t*)&data, sizeof(data)-4);
+  spi_write_eeprom(EEPROM_COPY_ADDRESS, (uint8_t *)&data, sizeof(data));
+  spi_write_eeprom(EEPROM_CONFIG_ADDRESS, (uint8_t *)&data, sizeof(data));
+  while(kbdread() != KEY_DOWN) continue;
 }

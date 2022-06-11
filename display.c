@@ -21,6 +21,7 @@
 #include "display.h"
 #include "resources.h"
 #include "LaunchPad.h"
+#include "profiler.h"
 
 //#include "configure.h"
 //#include "Clock.h"
@@ -719,38 +720,46 @@ void Draw_Map(void) {
 								scr_map[data.red_cell_nr].coordY+2, 1);
 		}	
 	}
-	update_display();
+//	update_display();
 	// Теперь маршрут
 	if (data.pathlength) 	{
-		int direction;
-		unsigned int prev_pos, curr_pos;
-		prev_pos = data.green_cell_nr;
+	    int direction;
+	    unsigned int prev_pos, curr_pos;
+	    curr_pos = data.green_cell_nr;
 
-		for (direction = north; direction <= west; direction++) {
-			if ((curr_pos = map[prev_pos].node_link[direction]) != UNKNOWN) break;
-		}
-		for (i = 0; i <= data.pathlength; i++) {
-			if (transpose) {
-				if (direction == north || direction == west)
-					squareXY(scr_map[prev_pos].coordY + 1, scr_map[prev_pos].coordX - 1,
-									 scr_map[curr_pos].coordY - 1, scr_map[curr_pos].coordX + 1, 2);
-				else
-					squareXY(scr_map[prev_pos].coordY - 1, scr_map[prev_pos].coordX + 1,
-									 scr_map[curr_pos].coordY + 1, scr_map[curr_pos].coordX - 1, 2);
-			} else {
-				if (direction == north || direction == east)
-					squareXY(scr_map[prev_pos].coordX + 1, scr_map[prev_pos].coordY - 1,
-									 scr_map[curr_pos].coordX - 1, scr_map[curr_pos].coordY + 1, 2);
-				else 
-					squareXY(scr_map[prev_pos].coordX - 1, scr_map[prev_pos].coordY + 1,
-									 scr_map[curr_pos].coordX + 1, scr_map[curr_pos].coordY - 1, 2);
-			}
-			prev_pos = curr_pos;
-			direction += data.path[i];
-			direction &= TURN_MASK;
-			curr_pos = map[curr_pos].node_link[direction];
-			if (curr_pos == UNKNOWN) break;
-		}
+	    for (direction = north; direction <= west; direction++) {
+	        if ((map[curr_pos].node_link[direction]) != UNKNOWN) break;
+	    }
+	    for (i = 0; i < data.pathlength; i++) {
+	        switch (data.length[i] & COMMAND_MASK) {
+	          case command_forward:
+	            prev_pos = curr_pos;
+	            curr_pos = map[curr_pos].node_link[direction];
+	            if (curr_pos == UNKNOWN) break;
+	            if (transpose) {
+	                if (direction == north || direction == west)
+	                  squareXY(scr_map[prev_pos].coordY + 1, scr_map[prev_pos].coordX - 1,
+	                           scr_map[curr_pos].coordY - 1, scr_map[curr_pos].coordX + 1, 2);
+	                else
+	                  squareXY(scr_map[prev_pos].coordY - 1, scr_map[prev_pos].coordX + 1,
+	                           scr_map[curr_pos].coordY + 1, scr_map[curr_pos].coordX - 1, 2);
+	            } else {
+	                if (direction == north || direction == east)
+	                  squareXY(scr_map[prev_pos].coordX + 1, scr_map[prev_pos].coordY - 1,
+	                           scr_map[curr_pos].coordX - 1, scr_map[curr_pos].coordY + 1, 2);
+	                else
+	                  squareXY(scr_map[prev_pos].coordX - 1, scr_map[prev_pos].coordY + 1,
+	                           scr_map[curr_pos].coordX + 1, scr_map[curr_pos].coordY - 1, 2);
+	            }
+	            break;
+
+	          case command_turn :
+	            direction += data.length[i];
+	            direction &= TURN_MASK;
+	            break;
+	        }
+          if (curr_pos == UNKNOWN) break;
+	    }
 	}
 	update_display();
 }

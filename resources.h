@@ -16,12 +16,11 @@
 #define REFL_PERIOD   (2500)
 #define FRAMESCANPERSECOND     (1000000/REFL_PERIOD)
 
-// TIMER0 - Tacho Period
 // TIMER1 - Motor PWM
 // TIMER2 - Reflectance sensor Light on/off, ADC start
 
 // PCNT1   - Quadrature Encoder Left
-// WTIMER0 - Quadrature Encoder Left
+// WTIMER0 - Tacho Period
 // WTIMER1 - Quadrature Encoder Right
 
 // LE_TIMER0 - Time delay
