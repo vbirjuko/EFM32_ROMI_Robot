@@ -6,7 +6,8 @@
  *
  */
 
-#define PERIOD_AVERAGE
+//#define PERIOD_AVERAGE
+#define PERIOD_EXP_AVERAGE
 
 #include "em_device.h"
 #include "em_gpio.h"
@@ -54,6 +55,10 @@ void tachometerwLeftInt(uint32_t currenttime){
     PeriodIndex &= (1 << LPF_FACTOR) - 1;
 //    __enable_irq();
     TachLeft.Period = PeriodSum >> LPF_FACTOR;
+#elif defined(PERIOD_EXP_AVERAGE)
+    static uint32_t average = 0;
+    average = ((1*TachLeft.Period + (4-1)*average) + 2) >> 2;  // 0.25 exp filter.
+    TachLeft.Period = average;
 #endif
 }
 
@@ -78,7 +83,17 @@ void tachometerwRightInt(uint32_t currenttime){
     PeriodIndex &= (1 << LPF_FACTOR) - 1;
 //    __enable_irq();
     TachRight.Period = PeriodSum >> LPF_FACTOR;
+#elif defined(PERIOD_EXP_AVERAGE)
+    static uint32_t average = 0;
+    average = ((1*TachRight.Period + (4-1)*average) + 2) >> 2;  // 0.25 exp filter.
+    TachRight.Period = average;
 #endif
+}
+
+void reset_steps(void) {
+//  WTIMER0->CNT = 0;
+  PCNT1->CMD = PCNT_CMD_LCNTIM;
+  PCNT2->CMD = PCNT_CMD_LCNTIM;
 }
 
 
@@ -112,19 +127,7 @@ void tachometer_init() {
   PCNT2->TOPB  = 0xFFFF;
   PCNT2->ROUTELOC0 = PCNT_ROUTELOC0_S0INLOC_LOC0 | PCNT_ROUTELOC0_S1INLOC_LOC0;
 
-/*
-  // квадратурный счетчик правый
-	WTIMER1->TOP = 0xFFFFFFFFul;
-  WTIMER1->CTRL = WTIMER_CTRL_MODE_QDEC | WTIMER_CTRL_QDM_X2 |
-                  WTIMER_CTRL_DISSYNCOUT | WTIMER_CTRL_DEBUGRUN;
-
-  WTIMER1->CC[0].CTRL = WTIMER_CC_CTRL_INSEL_PIN | WTIMER_CC_CTRL_FILT_DISABLE;
-  WTIMER1->CC[1].CTRL = WTIMER_CC_CTRL_INSEL_PIN | WTIMER_CC_CTRL_FILT_DISABLE;
-
-  WTIMER1->ROUTEPEN = WTIMER_ROUTEPEN_CC0PEN | WTIMER_ROUTEPEN_CC1PEN;
-  WTIMER1->ROUTELOC0 = WTIMER_ROUTELOC0_CC0LOC_LOC1 | WTIMER_ROUTELOC0_CC1LOC_LOC1;
-  WTIMER1->CMD = WTIMER_CMD_START;
-*/
+  reset_steps();
 
   // Таймер для измерения периода импульсов
   WTIMER0->CTRL = WTIMER_CTRL_MODE_UP | WTIMER_CTRL_DISSYNCOUT | WTIMER_CTRL_PRESC_DIV4; // 1 tick = 80ns
@@ -134,8 +137,8 @@ void tachometer_init() {
                         WTIMER_CC_CTRL_FILT_DISABLE | WTIMER_CC_CTRL_ICEDGE_RISING; // Encoder Right PD3
   WTIMER0->CC[1].CTRL = WTIMER_CC_CTRL_MODE_INPUTCAPTURE | WTIMER_CC_CTRL_INSEL_PIN |
                         WTIMER_CC_CTRL_FILT_DISABLE | WTIMER_CC_CTRL_ICEDGE_RISING; // encoder Left PB4
-  WTIMER0->ROUTELOC0 = WTIMER_ROUTELOC0_CC1LOC_LOC6;
-  WTIMER0->ROUTEPEN =  WTIMER_ROUTEPEN_CC1PEN;
+  WTIMER0->ROUTELOC0  = WTIMER_ROUTELOC0_CC1LOC_LOC6;
+  WTIMER0->ROUTEPEN   = WTIMER_ROUTEPEN_CC1PEN;
 
   WTIMER0->IEN = WTIMER_IEN_CC0 | WTIMER_IEN_CC1;
 
@@ -153,12 +156,6 @@ void WTIMER0_IRQHandler(void) {
       WTIMER0->IFC = WTIMER_IFC_CC1;
       tachometerwLeftInt(WTIMER0->CC[1].CCV);
   }
-}
-
-void reset_steps(void) {
-//  WTIMER0->CNT = 0;
-  PCNT1->CMD = PCNT_CMD_LCNTIM;
-  PCNT2->CMD = PCNT_CMD_LCNTIM;
 }
 
 // ------------Tachometer_Get------------
@@ -249,17 +246,5 @@ void TestTachom(void)       {
     }
     while (i > 4) dist_str[i--] = ' ';
 
-// *************************************************************
-//    str_len = num2str((int16_t)PCNT1->CNT, clipboard);
-//    for (i = 14; str_len--; i--) {
-//      pcnt_str[i] = clipboard[str_len];
-//    }
-//    while (i > 4) pcnt_str[i--] = ' ';
-//
-//    if (PCNT1->STATUS & PCNT_STATUS_DIR) {
-//            pcnt_str[15] = 'R';
-//    } else {
-//            pcnt_str[15] = 'F';
-//    }
   }
 }

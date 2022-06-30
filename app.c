@@ -61,12 +61,12 @@ void app_init(void)
   if (crc_err) LaunchPad_LED(1);
 
   spi_read_eeprom(ROM_map_addr, (unsigned char *)&map, sizeof(map));
-  SysTick_Init(50000000u/SCANPERSECOND, SysTick_IRQ_Priority);
+  SysTick_Init(CPU_FREQ*1000000u/SCANPERSECOND, SysTick_IRQ_Priority);
   kbd_init();
   UART0_Init();
   tachometer_init();
   Motor_Init();
-  Reflectance_Init_with_Timer(data.threshold, data.ir_led_level);
+  Reflectance_Init(data.threshold, data.ir_led_level);
   init_battery();
 
   if (crc_err) {
@@ -102,9 +102,7 @@ void app_init(void)
 void app_process_action(void) {
 
   const menuitem_t main_menu_items[] = {
-      {"test Profile    ", test_profile,  execute},
       {"Speed Play      ", SpeedPlay,     execute},
-      {"Solve Maze      ", Solve_Maze,    execute},
       {"Explore Maze    ", Explore_Maze,  execute},
       {"Map draw        ", DrawMap,       execute},
       {"Search Short Way", SearchShortWay, execute},
@@ -112,7 +110,6 @@ void app_process_action(void) {
       {"Battery Voltage ", ShowBattery,   execute},
       {"Reflectance test", TestReflect,   execute},
       {"Color sens. test", TestColor,     execute},
-      {"Bump sensor test", TestBump,      execute},
       {"Motor test      ", TestMotor,     execute},
       {"Tachometer  test", TestTachom,    execute},
       {"Free Run        ", FreeRun,       execute},

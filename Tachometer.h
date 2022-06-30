@@ -23,7 +23,8 @@ typedef struct {
 } Tach_stru_t;
 
 void Tachometer_Get(Tach_stru_t *leftTach, Tach_stru_t *rightTach);
-
 void reset_steps(void);
+
+void TestTachom(void);
 
 #endif

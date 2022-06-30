@@ -37,7 +37,7 @@ typedef struct {
     int low_battery_level;
     int ignore_coordinate_error;
     int turncost;
-    int crosscost;
+    int crosscost;    // obsolete
     int green_cell_nr;
     int volt_calibr;
     int stepcost;
@@ -70,5 +70,7 @@ void do_menu(menuitem_t* item, unsigned int last_menu_item);
 // Должно быть кратно 64k
 #define LOG_ADDRESS           0x20000
 #define LOG_END_ADDRESS       0x3FFFF
+
+void Configure(void);
 
 #endif

@@ -65,7 +65,7 @@ LDMA_TransferCfg_t adcXferCfg = LDMA_TRANSFER_CFG_PERIPHERAL(ldmaPeripheralSigna
 LDMA_Descriptor_t
   adc_descriptor = LDMA_DESCRIPTOR_LINKREL_P2M_BYTE(&(ADC0->SCANDATA), photo_array, sizeof(photo_array)/sizeof(photo_array[0]), 0);
 
-void Reflectance_Init_with_Timer(unsigned int threshold, int ir_led_level){
+void Reflectance_Init(unsigned int threshold, int ir_led_level){
   (void) ir_led_level;
   (void) threshold;
   // write this as part of Lab 6
@@ -93,15 +93,15 @@ void Reflectance_Init_with_Timer(unsigned int threshold, int ir_led_level){
   TIMER2->CTRL = TIMER_CTRL_MODE_UP | TIMER_CTRL_PRESC_DIV8
       | TIMER_CTRL_CLKSEL_PRESCHFPERCLK;
 
-  TIMER2->TOP = (REFL_PERIOD*50/8) - 1; // Period is 2.5ms
-  TIMER2->CNT = (REFL_PERIOD*50/8);     // 8ms first delay
+  TIMER2->TOP = (REFL_PERIOD*CPU_FREQ/8) - 1; // Period is 2.5ms
+  TIMER2->CNT = (REFL_PERIOD*CPU_FREQ/8);     // 8ms first delay
 
   TIMER2->CC[2].CTRL = TIMER_CC_CTRL_MODE_PWM | TIMER_CC_CTRL_PRSCONF_PULSE;
-  TIMER2->CC[2].CCV = (REFL_PERIOD-200)*50 / 8;  // Считывание за 50 мкс до включения подсветки
+  TIMER2->CC[2].CCV = (REFL_PERIOD-200)*CPU_FREQ / 8;  // Считывание за 50 мкс до включения подсветки
   TIMER2->CC[0].CTRL = TIMER_CC_CTRL_MODE_PWM | TIMER_CC_CTRL_PRSCONF_LEVEL;
-  TIMER2->CC[0].CCV = (REFL_PERIOD-150)*50 / 8;  // Подсветку включаем за 150 мкс до конца цикла
+  TIMER2->CC[0].CCV = (REFL_PERIOD-150)*CPU_FREQ / 8;  // Подсветку включаем за 150 мкс до конца цикла
   TIMER2->CC[1].CTRL = TIMER_CC_CTRL_MODE_PWM | TIMER_CC_CTRL_PRSCONF_PULSE;
-  TIMER2->CC[1].CCV = (REFL_PERIOD-50)*50 / 8;  // Считывание через 100 мкс после включения подсветки (и за 50 мкс до выключения)
+  TIMER2->CC[1].CCV = (REFL_PERIOD-50)*CPU_FREQ / 8;  // Считывание через 100 мкс после включения подсветки (и за 50 мкс до выключения)
 
 
   // включение и выключение ИК подсветки

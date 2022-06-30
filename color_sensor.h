@@ -24,5 +24,6 @@ typedef enum {
 unsigned int color_sensor_init(void);
 color_t check_color(void);
 extern volatile uint16_t color_sensors[4];
+void TestColor(void);
 
 #endif /* COLOR_SENSOR_H_ */

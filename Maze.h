@@ -52,9 +52,16 @@ extern const unsigned int turn_sequence[][3];
 unsigned int solveMaze(void);
 void BrakeTest(void);
 void FreeRun(void);
+unsigned int Search_Short_Way_with_turns(void);
 void SearchShortWay(void);
-unsigned int PlayMaze(void);
+void SpeedPlay(void);
+void Explore_Maze(void);
 unsigned int search_way_simple(unsigned int current_index, unsigned int virtual_index, bearing_dir_t back_bearing);
+void DrawMap(void);
+
+extern int brakepath;
+int TimeToRunStraight(int distance);
+void InitBrakePath(void);
 
 extern unsigned int calculation_time;
 

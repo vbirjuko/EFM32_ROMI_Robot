@@ -12,6 +12,9 @@
 #define OLED_SPI
 #define PCA
 
+
+#define CPU_FREQ    (50)
+
 // Период опроса фотосенсоров
 #define REFL_PERIOD   (2500)
 #define FRAMESCANPERSECOND     (1000000/REFL_PERIOD)

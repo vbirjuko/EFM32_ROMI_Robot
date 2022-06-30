@@ -20,5 +20,6 @@ typedef struct {
 extern LPF_t LPF_battery;
 void init_battery(void);
 unsigned int get_battery_voltage(void);
+void ShowBattery(void);
 
 #endif /* BATTERY_H_ */

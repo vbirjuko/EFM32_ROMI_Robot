@@ -20,7 +20,7 @@
 #define SLEEP_PIN                   (4)
 
 // 50 000 000 / 4 * 60 * 100 / 360
-#define T_CONSTANT  (208333333)
+#define T_CONSTANT  (CPU_FREQ * 25000000 / 6)
 
 void Motor_PWM (int16_t left, int16_t right) {
     if (left < 0) {

@@ -17,12 +17,20 @@
 #include "Logging.h"
 #define DATALOG
 
+#ifdef DATALOG
+#define LOGGING(A)       data_log(A, 1)
+#else
+#define LOGGING(A)
+#endif
+
+
 #define COMMAND_FACTOR  7
 #define MINRPM  (1600)
 
 // 220mm per 360 tick of two wheels.
 #define CURRENT_DISTANCE  (((int32_t)LeftSteps + (int32_t)RightSteps) * 11L / (2*36))
-#define DEGREE(x)  ((x*149)/18)
+// 143mm wide ~ 449 mm length / 220mm wheel step and multiply 720 pulse = 1470 pulse
+#define DEGREE(x)  ((x*49L)/6)
 
 int speed = 0;
 int slowdistance, startdistance, guarddistance, wait_counter;
@@ -75,8 +83,8 @@ void drop_command_queue(void) {
   profiler_data_ready = 0;
   speed = 0;
   Motor_Speed(speed, speed);
-  LaunchPad_Output(RED);
-  LaunchPad_Output1(RED);
+//  LaunchPad_Output(RED);
+//  LaunchPad_Output1(RED);
 }
 
 // функция движения по сегменту.
@@ -97,9 +105,7 @@ unsigned int run_segment(void) {
       blind = 1; activ_sensor_count = 0; last_sensor = 256; first_sensor = 256;
 
       photo_mask = current_sensor;
-#ifdef DATALOG
-      data_log(log_segment | photo_mask, 1);
-#endif
+      LOGGING(log_segment | photo_mask);
 
       unsigned int mask = 0x01;
       for (i=0; i<8; i++) {
@@ -194,9 +200,7 @@ unsigned int check_node(void) {
       unsigned int linecount = 0, prev_stat = 0;
       photo_data_ready  = 0;
       photo_sensor = current_sensor;
-#ifdef DATALOG
-      data_log(log_check | (available << 4) | photo_sensor, 1);
-#endif
+      LOGGING(log_check | (available << 4) | photo_sensor);
 
       if (delay) {
           delay--;
@@ -243,9 +247,7 @@ unsigned int slowdown(void) {
 
   if (photo_data_ready) {
       photo_data_ready = 0;
-#ifdef DATALOG
-      data_log(log_blind | current_sensor, 1);
-#endif
+      LOGGING(log_blind | current_sensor);
       if (CURRENT_DISTANCE < guarddistance) {
           if ((speed -= data.acceleration) < data.turnspeed) speed = data.turnspeed;
           Motor_Speed(speed, speed);
@@ -261,9 +263,7 @@ unsigned int slowdown(void) {
 unsigned int back_run(void) {
   if (photo_data_ready) {
       photo_data_ready = 0;
-#ifdef DATALOG
-      data_log(log_back | current_sensor, 1);
-#endif
+      LOGGING(log_back | current_sensor);
       if (CURRENT_DISTANCE > guarddistance) {
           if (CURRENT_DISTANCE > slowdistance) {
               if ((speed += data.acceleration) > data.maxspeed) speed = data.maxspeed;
@@ -285,9 +285,7 @@ unsigned int blind_entrance(void) {
   if (photo_data_ready) {
       photo_data_ready = 0;
       photo_sensor = current_sensor;
-#ifdef DATALOG
-      data_log(log_entrance | photo_sensor, 1);
-#endif
+      LOGGING(log_entrance | photo_sensor);
       if (photo_sensor) find_line++;
       else find_line = 0;
 
@@ -318,9 +316,7 @@ unsigned int blind_entrance(void) {
 unsigned int wait(void) {
   if (photo_data_ready) {
       photo_data_ready = 0;
-#ifdef DATALOG
-      data_log(log_wait | current_sensor, 1);
-#endif
+      LOGGING(log_wait | current_sensor);
       return  !(wait_counter--);
   }
   return 0;
@@ -338,7 +334,7 @@ int stop_difference, fail_difference, slow_difference;
   if (photo_data_ready ) {                                                      \
       photo_data_ready  = 0;                                                    \
       photo_sensor = current_sensor;                                            \
-      data_log(log_turn | photo_sensor, 1);                                     \
+      LOGGING(log_turn | photo_sensor);                                                                   \
       if ((DIFF) < slow_difference) {                                           \
           if ((speed += data.acceleration) > data.maxmotor) speed = data.maxmotor;                     \
       } else {                                                                  \
@@ -425,10 +421,10 @@ void profiler(void) {
           }
           if (speed == 0) startdistance = CURRENT_DISTANCE;
           // Расстояние, необходимое для торможения, если максимальная скорость не набирается:
-          //  (220mm/100) * (V^2 - v^2) / (4 * a * 400*60)  + distance/2
+          // (220mm/100)^2 * (V^2 - v^2) / (4 * a * 400*60)  + distance/2
           brakepath1 = (speed*speed - data.minspeed*data.minspeed)/data.acceleration * 11/480000 + total_length/2;
           // Расстояние, необходимое для торможения от максимальной скорости:
-          // (220mm/100) * (V^2 - v^2) / (2 * a * 400*60)
+          // (220mm/100)^2 * (V^2 - v^2) / (2 * a * 400*60)
           brakepath2 = (data.maxspeed*data.maxspeed - data.minspeed*data.minspeed)/data.acceleration*11/240000;
           // используем вариант с самым коротким тормозным путём
           if ((brakepath1 < brakepath2) && (brakepath1 >= 0)) {
@@ -544,13 +540,11 @@ void profiler(void) {
           break;
 
         case blind_run:
-          LaunchPad_Output1(BLUE);
           if ((read_command(1) & COMMAND_MASK) != command_forward){
               if (slowdown()) {
                   speed = 0;
                   Motor_Speed(0, 0);
                   state = idle;
-                  LaunchPad_Output1(0);
               }
           } else {
               state = idle;
@@ -569,8 +563,7 @@ void profiler(void) {
           if (wait()) {
               state = idle;
               Motor_Disable();
-              LaunchPad_Output1(0);
-          } else   LaunchPad_Output1(GREEN);
+          }
           break;
 
         case turn_left:

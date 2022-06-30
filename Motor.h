@@ -142,6 +142,7 @@ void Motor_PWM (int16_t left, int16_t right);
 void Motor_Speed (int16_t left, int16_t right);
 void Motor_Enable(void);
 void Motor_Disable(void);
+void TestMotor(void);
 
 extern volatile unsigned int motor_delay;
 

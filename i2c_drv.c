@@ -50,8 +50,12 @@ void i2c_master_init(void) {
   GPIO_PinModeSet(gpioPortD, 1, gpioModePushPull, 0);
 #endif
   // Конфигурируем EUSCI
+
+#if CPU_FREQ != 50
+#warning Recalculate divider
+#endif
   I2C_DEV->CTRL = I2C_CTRL_GIBITO | I2C_CTRL_BITO_40PCC; // | I2C_CTRL_AUTOSN;
-  I2C_DEV->CLKDIV = 14; // 50000 MHz / 400 bps = 125
+  I2C_DEV->CLKDIV = 14; // 50000 KHz / 400 kbps = 125
   // (125 - 8) /(4+4) - 1 = 13.625
   I2C_DEV->IEN = I2C_IEN_ARBLOST | I2C_IEN_NACK | I2C_IEN_RSTART | I2C_IEN_RXDATAV |
       I2C_IEN_START | I2C_IEN_MSTOP | I2C_IEN_RXFULL;

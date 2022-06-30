@@ -1,10 +1,12 @@
 #include "color_sensor.h"
 #include "i2c_drv.h"
 #include "configure.h"
+#include "launchpad.h"
 
 #define TCS_ADDR	(0x29 << 1)
 #define TCS_COMMAND	0x80
 #define TCS_INCREMENT	0x20
+#define TCS_SF        0x66
 
 enum classReg {
   ENABLE = 0x00,
@@ -51,17 +53,19 @@ unsigned int color_sensor_init(void) {
   param = 0;
   i2c_rd_reg(TCS_ADDR, (TCS_COMMAND | ID), &param, 1);
   if (param != 0x44) return 1;
-  param = ENABLE_PON; // PON
-  i2c_wr_reg(TCS_ADDR, TCS_COMMAND | ENABLE, &param, sizeof(param));
-  param = (256*5 - 50*12)/5 ; // ATIME 50 ms
+// ATIME = 256 − (Integration Time / 2.4) ms
+  param = 256 - (75*5 + 6)/12 ; // ATIME 75 ms
   i2c_wr_reg(TCS_ADDR, TCS_COMMAND | ATIME, &param, sizeof(param));
   param = 0; // WLONG = 0
   i2c_wr_reg(TCS_ADDR, TCS_COMMAND | CONFIG, &param, sizeof(param));
   param = 0xff; //
   i2c_wr_reg(TCS_ADDR, TCS_COMMAND | WTIME, &param, sizeof(param));
-  param = X01; // AGAIN 1x
+  param = X04; // AGAIN 1x
   i2c_wr_reg(TCS_ADDR, TCS_COMMAND | CONTROL, &param, sizeof(param));
-
+  param = 0;
+  i2c_wr_reg(TCS_ADDR, TCS_COMMAND | PERS, &param, sizeof(param));
+  param = ENABLE_PON | ENABLE_AEN | ENABLE_AIEN; // PON & AEN
+  i2c_wr_reg(TCS_ADDR, TCS_COMMAND | ENABLE, &param, sizeof(param));
   color_sensor_present = 1;
   return 0;
 }
@@ -70,15 +74,17 @@ color_t check_color(void) {
 
   if (color_sensor_present == 0) return black; // я слеп.
 
-  param = ENABLE_PON | ENABLE_AEN; // PON & AEN
-  while (I2C_SUCCESS != i2c_wr_reg(TCS_ADDR, TCS_COMMAND | ENABLE, &param, sizeof(param))) continue;
-  param = 0xff;
+  param = TCS_COMMAND | TCS_SF;
+  while (I2C_SUCCESS != i2c_wr(TCS_ADDR, &param, 1)) LaunchPad_Output1(RED|GREEN|BLUE);   // clear interrupt
+  param = ENABLE_PON | ENABLE_AEN | ENABLE_AIEN; // PON & AEN
+  while (I2C_SUCCESS != i2c_wr_reg(TCS_ADDR, TCS_COMMAND | ENABLE, &param, sizeof(param))) LaunchPad_Output1(RED|GREEN|BLUE);
   do {
-      while (I2C_SUCCESS != i2c_rd_reg(TCS_ADDR, TCS_COMMAND | STATUS, &param, sizeof(param))) continue;
-  } while ((param & STATUS_AVALID) == 0);
-  while (I2C_SUCCESS != i2c_rd_reg(TCS_ADDR, TCS_COMMAND | TCS_INCREMENT | CDATAL, (uint8_t *) color_sensors, 8)) continue;
-  //    param = ENABLE_PON; // PON
-  //  i2c_wr_reg(TCS_ADDR, TCS_COMMAND | ENABLE, &param, sizeof(param));
+      param = 0x00;
+      while (I2C_SUCCESS != i2c_rd_reg(TCS_ADDR, TCS_COMMAND | STATUS, &param, sizeof(param))) LaunchPad_Output1(RED|GREEN|BLUE);
+  } while ((param & STATUS_AINT) == 0);
+  while (I2C_SUCCESS != i2c_rd_reg(TCS_ADDR, TCS_COMMAND | TCS_INCREMENT | CDATAL, (uint8_t *) color_sensors, sizeof(color_sensors))) LaunchPad_Output1(RED|GREEN|BLUE);
+  param = TCS_COMMAND | TCS_SF;
+  while (I2C_SUCCESS != i2c_wr(TCS_ADDR, &param, 1)) LaunchPad_Output1(RED|GREEN|BLUE);   // clear interrupt
 
 #ifdef DEBUG_COLOR_SENS
   if (log_array_ptr) {

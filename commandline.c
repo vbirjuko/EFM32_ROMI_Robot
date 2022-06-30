@@ -669,6 +669,22 @@ uint32_t enable_motor(instance_t *instance, int * none) {
   return 0;
 }
 
+uint32_t time_to_run_straight(instance_t *instance, int *none) {
+  UNUSED(none);
+  int32_t val;
+  if (instance->stack_idx == 0) return 1;
+  val = instance->stack[instance->stack_idx - 1];
+  instance->stack[instance->stack_idx - 1] = TimeToRunStraight(val);
+  return 0;
+}
+
+uint32_t init_brakepath(instance_t *instance, int *none) {
+  UNUSED (none);
+  UNUSED (instance);
+  InitBrakePath();
+  return 0;
+}
+
 uint32_t speed_motor(instance_t *instance, int *none) {
   uint32_t val_left, val_right;
   UNUSED(none);
@@ -725,12 +741,11 @@ uint32_t dump_map(instance_t *instance, int * none)	{
 	return 0;
 }
 
-#ifdef UNIMPLEMENTED
 uint32_t search_way(instance_t *instance, int * none) {
-    Search_Short_Way_with_turns();
-    return 0;
+    UNUSED(instance);
+    UNUSED(none);
+    return Search_Short_Way_with_turns();
 }
-#endif
 
 typedef struct {
     char CmdName[12]; // name of command
@@ -762,7 +777,7 @@ const Cmd_t Table[]={
     {"bin",             &set_base, (int *) 0x02},
     {"decimal",         &set_base, (int *) 0x0a},
     {"crc",             &crc_calculate, NULL},
-    {"vbat",			&Battery,	NULL},
+    {"vbat",			      &Battery,	NULL},
     {"threshold",       &put_threshold, NULL},
     {"Threshold",       &put_on_stack, &data.threshold},
     {"MAXspeed",        &put_on_stack, &data.maxspeed},
@@ -793,7 +808,7 @@ const Cmd_t Table[]={
     {"GuardDist", 		  &put_on_stack, &data.guarddist},
     {"SensorOffs", 		  &put_on_stack, &data.sensor_offset},
     {"IgnoreError", 	  &put_on_stack, &data.ignore_coordinate_error},
-    {"BrakePath", 		  &put_on_stack, &data.brake_path},
+    {"BrakePath", 		  &put_on_stack, &brakepath},
     {"TimeToRun", 		  &put_on_stack, &data.timetorun},
     {"TurnCost", 		    &put_on_stack, &data.turncost},
     {"CrossCost", 		  &put_on_stack, &data.crosscost},
@@ -805,15 +820,17 @@ const Cmd_t Table[]={
     {"Watermark",       &put_on_stack, &data.log_watermark},
     {"motor_en",        &enable_motor,  NULL},
     {"motor_speed",     &speed_motor,   NULL},
-//    {"searchWay",       &search_way, NULL},
+    {"searchWay",       &search_way, NULL},
     {"save_conf",       &write_eeprom_config, NULL},
     {"dump",            &dump_mem,  NULL},
     {"dump_eeprom",     &dump_eeprom, NULL},
     {"dump_log",        &dump_log, (int *) 0},
     {"dump_addlog",     &dump_addlog, (int *) 0},
-//    {"dump_log_ft",     &dump_log, (int *) 1},
+    {"dump_log_ft",     &dump_log, (int *) 1},
     {"dump_map",		    &dump_map, NULL},
     {"show_path",       &show_path, NULL},
+    {"time_to_run",     &time_to_run_straight, NULL},
+    {"init_brkpth",   &init_brakepath, NULL},
     {"list",            &list_values, NULL},
     {"words",           &list_cmd, NULL},
 };
@@ -871,7 +888,7 @@ uint32_t list_values(instance_t *instance, int * none) {
 }
 
 void parse_string(instance_t *instance) {
-    unsigned int i, j, input_num, digit;
+    unsigned int i, j, input_num, digit, invert_digit = 0;
     unsigned char *str_ptr, *in_ptr;
     str_ptr = instance->input_string;
 		instance->UART_OutString("\r\n");
@@ -899,10 +916,18 @@ void parse_string(instance_t *instance) {
         if (i == TABLE_SIZE) {
             unsigned int iserror = 0;
             input_num = 0;
+            if (*in_ptr == '-') {
+                in_ptr++;
+                invert_digit = 1;
+            } else if (*in_ptr == '+') {
+                in_ptr++;
+                invert_digit = 0;
+            } else invert_digit = 0;
             while ((*in_ptr != ' ') && (*in_ptr != '\0')) {
-                digit = *in_ptr - '0';
-                if (digit > 9) digit -= ('@'-'9');
-                if (digit < instance->base) {
+                if ((*in_ptr >= '0') && (*in_ptr <= '9')) digit = *in_ptr - '0';
+                else if (*in_ptr > '@') digit = *in_ptr - 'A' + 10;
+                else iserror = 1;
+                if (!iserror && (digit < instance->base)) {
                     input_num = input_num*instance->base + digit;
                     in_ptr++;
                 } else {
@@ -916,6 +941,7 @@ void parse_string(instance_t *instance) {
                 }
             }
             if (!iserror) {
+                if (invert_digit) input_num = -input_num;
                 if (put_on_stack(instance, (int *) input_num)) {
                     instance->UART_OutString("Stack overflow\r\n");
                     *in_ptr = '\0'; // обрываем строку

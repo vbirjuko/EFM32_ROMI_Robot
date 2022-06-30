@@ -14,9 +14,8 @@
 #include "Logging.h"
 #include "rand.h"
 #include "crc.h"
+#include "math.h"
 
-
-void Search_Short_Way_with_turns(void);
 
 #define MAX_PATH_LENGTH (sizeof(data.path)/sizeof(data.path[0]))
 rotation_dir_t path[MAX_PATH_LENGTH];
@@ -79,7 +78,7 @@ unsigned int PlayMaze(void) {
         while (put_command(data.length[step])) continue;
         step++;
     };
-    while (put_command(command_finish)) continue;
+    while (put_command(command_finish | 100)) continue;
     while (put_command(command_wait | 2 * FRAMESCANPERSECOND)) continue;
     while (profiler_queue_empty == 0) continue;
     profiler_data_ready = 0;
@@ -112,11 +111,10 @@ unsigned int solveMaze(void) {
                                   // после окончания сгенерённого маршрута напрямик.
                play = 0;          // Переменная укзывающая сколько еще узлов надо проехать по сгенеренному маршруту
                                   //
-  unsigned int last_index = 0, current_index, found_red = 0;
-  unsigned int expect_index = UNKNOWN, turn_index;
-  //    volatile unsigned int record_count = 0;
+  unsigned int last_index = 0, current_index, expect_index = UNKNOWN,found_red = 0;
+  unsigned int  turn_index;
   rotation_dir_t   turn_direction = straight;
-  int		move_direction = north, pathsequence;
+  int move_direction = north, pathsequence;
   coordinate_t my_coordinate = {0, 0};
   unsigned int max_map_cell = 0;
 
@@ -169,7 +167,7 @@ unsigned int solveMaze(void) {
           Rand();
           continue;
       }
-      LaunchPad_Output(0);
+//      LaunchPad_Output(0);
       available = node_configuration;
       profiler_data_ready = 0;
 
@@ -181,15 +179,6 @@ unsigned int solveMaze(void) {
       update_coordinate(&my_coordinate, segment_length, (bearing_dir_t)move_direction);
 
       for (current_index = 0; current_index < max_map_cell; current_index++) { // ищем похожие координаты
-
-          // Теперь выполняем "выравнивание" робота в координатной сетке ортогонального лабиринта
-          //				if ((ABS(my_coordinate.east - map[current_index].coordinate.east)) < data.tolerance) {
-          //					my_coordinate.east = map[current_index].coordinate.east;
-          //				}
-          //				if ((ABS(my_coordinate.north - map[current_index].coordinate.north)) < data.tolerance) {
-          //					my_coordinate.north = map[current_index].coordinate.north;
-          //				}
-
           // И проверяем, были ли мы уже здесь?
           if ((ABS(my_coordinate.east - map[current_index].coordinate.east) < data.tolerance) &&
               (ABS(my_coordinate.north - map[current_index].coordinate.north) < data.tolerance)) {
@@ -267,14 +256,23 @@ unsigned int solveMaze(void) {
                 case red:
                   data.red_cell_nr = current_index;
                   found_red = 1;
+                  LaunchPad_Output(RED);
                   break;
 
                 case green:
                   data.green_cell_nr = current_index;
 //                  put_command(command_wait | 2 * FRAMESCANPERSECOND);
+                  LaunchPad_Output(GREEN);
                   break;
 
+                case white:
+                  LaunchPad_Output(RED|GREEN|BLUE);
+                  break;
+                case yellow:
+                  LaunchPad_Output(RED|GREEN);
+                  break;
                 default:
+                  LaunchPad_Output(0);
                   break;
               }
           }
@@ -377,7 +375,7 @@ unsigned int solveMaze(void) {
       }
 
       if (data.pathlength) {
-          LaunchPad_Output(BLUE);
+//          LaunchPad_Output(BLUE);
           if (--play == 0) {
               while (((length[pathsequence] & COMMAND_MASK) == command_turn) && (pathsequence < data.pathlength)) {
                   while (put_command(length[pathsequence]));
@@ -407,7 +405,7 @@ unsigned int solveMaze(void) {
               }
           }
       } else {
-          LaunchPad_Output(GREEN);
+//          LaunchPad_Output(GREEN);
           switch (turn_direction) {
             case straight:
               break;
@@ -490,11 +488,31 @@ static unsigned int insert_val(unsigned int val, unsigned int idx) {
 }
 
 static unsigned int extract_val(void) {
-    return sort_idx[--sort_tail];
+    if (sort_tail)return sort_idx[--sort_tail];
+    else          return sort_idx[sort_tail];
 }
 
+int brakepath = 0;
 
-void Search_Short_Way_with_turns(void) {
+int TimeToRunStraight(int distance) {  // in milliseconds from millimeters.
+  if (distance < brakepath * 2) {
+      return sqrt(3000000 * distance/(11 * data.acceleration));
+  } else if ((distance + 2*brakepath) < 7159) {
+      return 300000 * (distance + 2*brakepath)/(11 * data.maxmotor);
+  } else {
+      return  27273 * (distance + 2*brakepath)/data.maxmotor;
+  }
+}
+
+void InitBrakePath(void) {
+  // Расстояние, необходимое для торможения от максимальной скорости:
+  // (220mm/100)^2 * (V^2 - v^2) / (2 * a * 400*60)
+  brakepath = (data.maxmotor*data.maxmotor)/data.acceleration*11/240000;
+  // turn length: 143mm wide * Pi / 4 = 112mm - each wheel run to turn 90 degree.
+  data.turncost = TimeToRunStraight(112);
+}
+
+unsigned int Search_Short_Way_with_turns(void) {
 
   unsigned int k, min_index, destination;
   int	distance;
@@ -503,6 +521,7 @@ void Search_Short_Way_with_turns(void) {
   fill_data32_dma(0xffffffff, (uint32_t*)path_length_table, data.map_size*2);
   data.pathlength = 0;
 
+  InitBrakePath();
   spi_read_eeprom(ROM_map_addr, (uint8_t *)&map, sizeof(map));
 
   // переводим в двухслойную карту
@@ -519,31 +538,34 @@ void Search_Short_Way_with_turns(void) {
   path_length_table[data.red_cell_nr * 2 + 1] = 0;
 
   sort_tail = 0;
-  insert_val(0, data.red_cell_nr * 2);
-  insert_val(0, data.red_cell_nr * 2 + 1);
+  if (insert_val(0, data.red_cell_nr * 2)) return 1;
+  if (insert_val(0, data.red_cell_nr * 2 + 1)) return 1;
 
   // Составляем карту высот по алгоритму Дейкстры
   while (sort_tail) {
       min_index  = extract_val();
       for (k = 0; k < 2; k++) {
-          if ((destination = map[min_index/2].node_link[2*k + (min_index & 0x01)]) != UNKNOWN) {
-              //                distance = map2d[min_index].length[k];
-              distance =   (map[min_index/2].coordinate.north - map[destination].coordinate.north) +
-                           (map[min_index/2].coordinate.east  - map[destination].coordinate.east);
-              if (distance < 0) distance = -distance + data.crosscost;
-              else              distance += data.crosscost;
-              destination = destination * 2 + (min_index & 0x01);
-              if (path_length_table[destination] > (path_length_table[min_index] + distance)) {
-                  path_length_table[destination] = path_length_table[min_index] + distance;
-                  insert_val(path_length_table[destination], destination);
+          unsigned int next_min_index = min_index;
+          while ((destination = map[next_min_index/2].node_link[2*k + (next_min_index & 0x01)]) != UNKNOWN) {
+              distance =  (min_index & 0x01) ? (map[next_min_index/2].coordinate.east  - map[destination].coordinate.east) :
+                                               (map[next_min_index/2].coordinate.north - map[destination].coordinate.north);
+              if (distance < 0) distance = -distance;
+              distance = TimeToRunStraight(distance); // переводим миллиметры в миллисекунды.
+              // до этого destination был индекс в карте,
+              // а теперь будет индексом в таблице расстояний
+              destination = destination * 2 + (next_min_index & 0x01);
+              if (path_length_table[destination] > (path_length_table[next_min_index] + distance)) {
+                  path_length_table[destination] = path_length_table[next_min_index] + distance;
+                  if (insert_val(path_length_table[destination], destination)) return 1;
               }
+              next_min_index = map[next_min_index/2].node_link[2*k + (next_min_index & 0x01)]*2 + (min_index & 0x01);
           }
       }
       distance = data.turncost;
       destination = min_index ^ 0x01;
       if (path_length_table[destination] > (path_length_table[min_index] + distance)) {
           path_length_table[destination] = path_length_table[min_index] + distance;
-          if (insert_val(path_length_table[destination], destination)) LaunchPad_Output(RED);
+          if (insert_val(path_length_table[destination], destination)) return 1;
       }
   }
 
@@ -568,10 +590,13 @@ void Search_Short_Way_with_turns(void) {
   while (path_length_table[min_index]) {
       for (k = 0; k < 3; k++) {
           if (k < 2) {
-              if ((destination = map[min_index/2].node_link[2*k + (min_index & 0x01)]) != UNKNOWN) {
-                  distance =   (map[min_index/2].coordinate.north - map[destination].coordinate.north) +
-                      (map[min_index/2].coordinate.east  - map[destination].coordinate.east);
+              int step = 0;
+              while ((destination = map[min_index/2+step].node_link[2*k + (min_index & 0x01)]) != UNKNOWN) {
+                  distance =  (min_index & 0x01) ? (map[min_index/2].coordinate.east  - map[destination].coordinate.east) :
+                                                   (map[min_index/2].coordinate.north - map[destination].coordinate.north);
                   if (distance < 0) distance = -distance;
+                  distance = TimeToRunStraight(distance);
+
                   // до этого destination был индекс в карте,
                   // а теперь будет индексом в таблице расстояний
                   destination = destination*2 + (min_index & 0x01);
@@ -579,13 +604,23 @@ void Search_Short_Way_with_turns(void) {
                       bearing = (bearing_dir_t)((min_index & 0x01) + 2*k);
                       if (bearing != prev_bearing) {
                           data.length[data.pathlength++] = (command_turn | ((bearing - prev_bearing) & TURN_MASK));
+                          if (data.pathlength >= MAX_MAP_SIZE*2) return 1;
                       }
-                      data.length[data.pathlength++] = (command_forward | distance);
+                      do {
+                          distance =  (min_index & 0x01) ? (map[min_index/2].coordinate.east  - map[destination].coordinate.east) :
+                                                           (map[min_index/2].coordinate.north - map[destination].coordinate.north);
+                          if (distance < 0) distance = -distance;
+                          data.length[data.pathlength++] = (command_forward | distance);
+                          if (data.pathlength >= MAX_MAP_SIZE*2) return 1;
+                          min_index = map[min_index/2].node_link[2*k + (min_index & 0x01)]*2 + (min_index & 0x01);
+
+                      } while (step--);
 
                       prev_bearing = bearing;
                       min_index = destination;
                       break;
                   }
+                  step++;
               }
           } else {
               if ((path_length_table[min_index] - data.turncost) == (path_length_table[min_index ^ 0x01])) {
@@ -595,7 +630,7 @@ void Search_Short_Way_with_turns(void) {
           }
       }
   }
-  return;
+  return 0;
 }
 
 unsigned int search_way_simple(unsigned int start, unsigned int finish, bearing_dir_t my_bearing){

@@ -29,7 +29,8 @@
  * @brief  Initialize the GPIO pins and timers for the QTR-8RC reflectance sensor.
  */
 
-void Reflectance_Init_with_Timer(unsigned int threshold, int ir_led_level);
+void Reflectance_Init(unsigned int threshold, int ir_led_level);
+void TestReflect(void);
 
 extern volatile uint8_t photo_array[16];
 extern volatile uint32_t current_sensor, photo_data_ready;
