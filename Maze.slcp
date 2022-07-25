@@ -16,12 +16,13 @@ include:
 sdk: {id: gecko_sdk, version: 4.1.0}
 toolchain_settings: []
 component:
-- {id: emlib_ldma}
-- {id: sl_system}
 - {id: cmsis_dsp}
 - {id: brd2207a}
+- {id: emlib_ldma}
+- {id: sl_system}
 - {id: device_init}
 - {id: EFM32GG12B810F1024GM64}
 define:
 - {name: DEBUG_EFM}
 ui_hints: {}
+

@@ -360,6 +360,8 @@ uint32_t read_eeprom_log(int * none) {
     return 0;
 }
 */
+
+
 uint32_t put_on_stack(instance_t *instance, int * arg) {
     instance->stack[instance->stack_idx] = (uint32_t) arg;
     if (++instance->stack_idx < FORTH_STACK_SIZE) return 0;
@@ -454,7 +456,7 @@ uint32_t sum_stack(instance_t *instance, int * none) {
 }
 
 uint32_t minus_stack(instance_t *instance, int * none) {
-    (void) none;
+    UNUSED(none);
     if (instance->stack_idx < 2) return 1;
     instance->stack[instance->stack_idx - 2] -= instance->stack[instance->stack_idx - 1];
     instance->stack_idx--;
@@ -462,7 +464,7 @@ uint32_t minus_stack(instance_t *instance, int * none) {
 }
 
 uint32_t lshift_stack(instance_t *instance, int * none) {
-    (void) none;
+    UNUSED(none);
     if (instance->stack_idx < 2) return 1;
     instance->stack[instance->stack_idx - 2] <<= instance->stack[instance->stack_idx - 1];
     instance->stack_idx--;
@@ -470,7 +472,7 @@ uint32_t lshift_stack(instance_t *instance, int * none) {
 }
 
 uint32_t mult_stack(instance_t *instance, int * none) {
-    (void) none;
+    UNUSED(none);
     if (instance->stack_idx < 2) return 1;
     instance->stack[instance->stack_idx - 2] *= instance->stack[instance->stack_idx - 1];
     instance->stack_idx--;
@@ -478,7 +480,7 @@ uint32_t mult_stack(instance_t *instance, int * none) {
 }
 
 uint32_t div_stack(instance_t *instance, int * none) {
-    (void) none;
+    UNUSED(none);
     if (instance->stack_idx < 2) return 1;
     instance->stack[instance->stack_idx - 2] /= instance->stack[instance->stack_idx - 1];
     instance->stack_idx--;
@@ -747,6 +749,22 @@ uint32_t search_way(instance_t *instance, int * none) {
     return Search_Short_Way_with_turns();
 }
 
+uint32_t validate_config(instance_t *instance, int * none) {
+    UNUSED(none);
+
+    unsigned int validation_error_code = (config_validate());
+    if (validation_error_code  & 0x01) {
+      instance->UART_OutString("Data validation: Cell step/Guard error. Corrected.\r\n");
+    }
+    if (validation_error_code & 0x02) {
+      instance->UART_OutString("Data validation: Vbat error.\r\n");
+    }
+    if (validation_error_code & 0x04) {
+      instance->UART_OutString("Data validation: Min speed/sensor offset error. Corrected.\r\n");
+    }
+    return 0;
+}
+
 typedef struct {
     char CmdName[12]; // name of command
     uint32_t (*fnctPt)(instance_t *, int *); // to execute this command
@@ -821,6 +839,7 @@ const Cmd_t Table[]={
     {"motor_en",        &enable_motor,  NULL},
     {"motor_speed",     &speed_motor,   NULL},
     {"searchWay",       &search_way, NULL},
+    {"validate",        &validate_config, NULL},
     {"save_conf",       &write_eeprom_config, NULL},
     {"dump",            &dump_mem,  NULL},
     {"dump_eeprom",     &dump_eeprom, NULL},
@@ -840,7 +859,7 @@ uint32_t list_cmd(instance_t *instance, int * none) {
     char string_buf[64], *CmdName_ptr, *buf_ptr;
     unsigned int charcount, i;
     
-    (void)none;
+    UNUSED(none);
     buf_ptr = string_buf;
     for (i = 0; i < TABLE_SIZE; i++) {
         charcount = 12;
@@ -865,7 +884,7 @@ uint32_t list_values(instance_t *instance, int * none) {
     char string_buf[14], *buf_ptr, *CmdName_ptr;
     unsigned int charcount, i;
     
-    (void)none;
+    UNUSED(none);
     buf_ptr = string_buf;
     for (i = 0; i< TABLE_SIZE; i++) {
         if (Table[i].fnctPt != &put_on_stack) continue;

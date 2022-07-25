@@ -61,7 +61,7 @@ typedef struct {
 } menuitem_t;
 
 void edit_path(void);
-void do_menu(menuitem_t* item, unsigned int last_menu_item);
+unsigned int do_menu(menuitem_t* item, unsigned int last_menu_item);
 
 #define EEPROM_COPY_ADDRESS   0x7F000
 #define EEPROM_CONFIG_ADDRESS 0x00000
@@ -72,5 +72,6 @@ void do_menu(menuitem_t* item, unsigned int last_menu_item);
 #define LOG_END_ADDRESS       0x3FFFF
 
 void Configure(void);
+unsigned int config_validate(void);
 
 #endif

@@ -15,7 +15,7 @@
 #include "rand.h"
 #include "crc.h"
 #include "math.h"
-
+#include "resources.h"
 
 #define MAX_PATH_LENGTH (sizeof(data.path)/sizeof(data.path[0]))
 rotation_dir_t path[MAX_PATH_LENGTH];
@@ -70,7 +70,9 @@ unsigned int PlayMaze(void) {
     cell_step = (data.cell_step) ? data.cell_step : 100;
     if (data.pathlength == 0) return 1;
 
+#ifdef DATALOG
     data_log_init();
+#endif
     while (put_command(command_wait | 2 * FRAMESCANPERSECOND)) continue;
     while (put_command(command_entrance | cell_step)) continue;
 
@@ -82,7 +84,9 @@ unsigned int PlayMaze(void) {
     while (put_command(command_wait | 2 * FRAMESCANPERSECOND)) continue;
     while (profiler_queue_empty == 0) continue;
     profiler_data_ready = 0;
+#ifdef DATALOG
     data_log_finish();
+#endif
     return 0;
 }
 
@@ -114,11 +118,13 @@ unsigned int solveMaze(void) {
   unsigned int last_index = 0, current_index, expect_index = UNKNOWN,found_red = 0;
   unsigned int  turn_index;
   rotation_dir_t   turn_direction = straight;
-  int move_direction = north, pathsequence;
+  int move_direction = north, pathsequence = 0;
   coordinate_t my_coordinate = {0, 0};
   unsigned int max_map_cell = 0;
 
+#ifdef DATALOG
   data_log_init();
+#endif
   drop_command_queue();
   // Проезжаем вперед на половину корпуса вслепую
   put_command(command_wait | 2 * FRAMESCANPERSECOND);
@@ -161,7 +167,9 @@ unsigned int solveMaze(void) {
               putstr(0, 4, err_code_str, 1);
               putstr(0, 5, last_idx_str, 1);
               profiler_error_code = 0;
+#ifdef DATALOG
               data_log_finish();
+#endif
               return 1;
           }
           Rand();
@@ -239,7 +247,9 @@ unsigned int solveMaze(void) {
                       putstr(strlen, 6, ",", 1);
                       num2str(my_coordinate.north, number_str);
                       putstr(strlen+1, 6, number_str, 1);
+#ifdef DATALOG
                       data_log_finish();
+#endif
                       return 1;
                   }
               }
@@ -448,7 +458,9 @@ unsigned int solveMaze(void) {
 
   finish:
   while (profiler_queue_empty == 0) continue;
+#ifdef DATALOG
   data_log_finish();
+#endif
 //  copy_data32_dma((uint32_t *)length, (uint32_t *)data.length, data.pathlength);
 //  copy_data_dma(path, data.path, data.pathlength);
   data.map_size = max_map_cell;
@@ -495,13 +507,16 @@ static unsigned int extract_val(void) {
 int brakepath = 0;
 
 int TimeToRunStraight(int distance) {  // in milliseconds from millimeters.
+  int result = 0;
   if (distance < brakepath * 2) {
-      return sqrt(3000000 * distance/(11 * data.acceleration));
+      result = sqrt(3000000LL * distance/ 11 /data.acceleration);
   } else if ((distance + 2*brakepath) < 7159) {
-      return 300000 * (distance + 2*brakepath)/(11 * data.maxmotor);
+      result = 300000 * (distance + 2*brakepath)/(11 * data.maxmotor);
   } else {
-      return  27273 * (distance + 2*brakepath)/data.maxmotor;
+      result = 27273 * (distance + 2*brakepath)/data.maxmotor;
   }
+  if (result) return result;
+  else return 1;
 }
 
 void InitBrakePath(void) {
@@ -509,12 +524,12 @@ void InitBrakePath(void) {
   // (220mm/100)^2 * (V^2 - v^2) / (2 * a * 400*60)
   brakepath = (data.maxmotor*data.maxmotor)/data.acceleration*11/240000;
   // turn length: 143mm wide * Pi / 4 = 112mm - each wheel run to turn 90 degree.
-  data.turncost = TimeToRunStraight(112);
+  data.turncost = TimeToRunStraight((TRACK_WIDE * 314 + 200)/400);
 }
 
 unsigned int Search_Short_Way_with_turns(void) {
 
-  unsigned int k, min_index, destination;
+  unsigned int k, min_index, destination, destination_map, break_flag = 0;
   int	distance;
   int prev_bearing, bearing;
 
@@ -546,16 +561,15 @@ unsigned int Search_Short_Way_with_turns(void) {
       min_index  = extract_val();
       for (k = 0; k < 2; k++) {
           unsigned int next_min_index = min_index;
-          while ((destination = map[next_min_index/2].node_link[2*k + (next_min_index & 0x01)]) != UNKNOWN) {
-              distance =  (min_index & 0x01) ? (map[next_min_index/2].coordinate.east  - map[destination].coordinate.east) :
-                                               (map[next_min_index/2].coordinate.north - map[destination].coordinate.north);
+          while ((destination_map = map[next_min_index/2].node_link[2*k + (next_min_index & 0x01)]) != UNKNOWN) {
+              distance =  (min_index & 0x01) ? (map[min_index/2].coordinate.east  - map[destination_map].coordinate.east) :
+                                               (map[min_index/2].coordinate.north - map[destination_map].coordinate.north);
               if (distance < 0) distance = -distance;
               distance = TimeToRunStraight(distance); // переводим миллиметры в миллисекунды.
-              // до этого destination был индекс в карте,
-              // а теперь будет индексом в таблице расстояний
-              destination = destination * 2 + (next_min_index & 0x01);
-              if (path_length_table[destination] > (path_length_table[next_min_index] + distance)) {
-                  path_length_table[destination] = path_length_table[next_min_index] + distance;
+
+              destination = destination_map * 2 + (next_min_index & 0x01);
+              if (path_length_table[destination] > (path_length_table[min_index] + distance)) {
+                  path_length_table[destination] = path_length_table[min_index] + distance;
                   if (insert_val(path_length_table[destination], destination)) return 1;
               }
               next_min_index = map[next_min_index/2].node_link[2*k + (next_min_index & 0x01)]*2 + (min_index & 0x01);
@@ -569,10 +583,10 @@ unsigned int Search_Short_Way_with_turns(void) {
       }
   }
 
+  prev_bearing = north;
+  min_index = (data.green_cell_nr << 1);
   // таблица расстояний составлена - надо строить маршрут.
-  // Теперь скатываемся вниз для создания кратчайшего пути
-  // от старта к финишу.
-  data.pathlength = 0; // указатель пути на начало
+  // Берём зелёную клетку и выясняем в каком направлении есть ход.
   for (unsigned int ii = north; ii <= west; ii++) {
       if (map[data.green_cell_nr].node_link[ii] != UNKNOWN) {
           prev_bearing = ii;
@@ -580,48 +594,50 @@ unsigned int Search_Short_Way_with_turns(void) {
           break;
       }
   }
+  data.pathlength = 0; // указатель пути на начало
 
-//  prev_bearing = north;
-//  min_index = (data.green_cell_nr << 1);  // начинаем с того места где находимся и куда повернуты
-//    if (path_length_table[min_index] > path_length_table[min_index+1]) {
-//        min_index++;
-//        prev_bearing = east;
-//    }
+  // Теперь скатываемся вниз для создания кратчайшего пути
+  // от старта к финишу.
   while (path_length_table[min_index]) {
       for (k = 0; k < 3; k++) {
           if (k < 2) {
               int step = 0;
-              while ((destination = map[min_index/2+step].node_link[2*k + (min_index & 0x01)]) != UNKNOWN) {
-                  distance =  (min_index & 0x01) ? (map[min_index/2].coordinate.east  - map[destination].coordinate.east) :
-                                                   (map[min_index/2].coordinate.north - map[destination].coordinate.north);
+              unsigned int next_min_index = min_index;
+              while ((destination_map = map[next_min_index/2].node_link[2*k + (next_min_index & 0x01)]) != UNKNOWN) {
+                  distance =  (next_min_index & 0x01) ? (map[min_index/2].coordinate.east  - map[destination_map].coordinate.east) :
+                                                        (map[min_index/2].coordinate.north - map[destination_map].coordinate.north);
                   if (distance < 0) distance = -distance;
                   distance = TimeToRunStraight(distance);
 
                   // до этого destination был индекс в карте,
                   // а теперь будет индексом в таблице расстояний
-                  destination = destination*2 + (min_index & 0x01);
+                  destination = destination_map*2 + (next_min_index & 0x01);
                   if ((path_length_table[min_index] - distance) == (path_length_table[destination])) {
-                      bearing = (bearing_dir_t)((min_index & 0x01) + 2*k);
+                      bearing = (bearing_dir_t)((next_min_index & 0x01) + 2*k);
                       if (bearing != prev_bearing) {
                           data.length[data.pathlength++] = (command_turn | ((bearing - prev_bearing) & TURN_MASK));
                           if (data.pathlength >= MAX_MAP_SIZE*2) return 1;
                       }
                       do {
-                          distance =  (min_index & 0x01) ? (map[min_index/2].coordinate.east  - map[destination].coordinate.east) :
-                                                           (map[min_index/2].coordinate.north - map[destination].coordinate.north);
+                          destination_map = map[min_index/2].node_link[2*k + (min_index & 0x01)];
+                          distance =  (min_index & 0x01) ? (map[min_index/2].coordinate.east  - map[destination_map].coordinate.east) :
+                                                           (map[min_index/2].coordinate.north - map[destination_map].coordinate.north);
                           if (distance < 0) distance = -distance;
                           data.length[data.pathlength++] = (command_forward | distance);
                           if (data.pathlength >= MAX_MAP_SIZE*2) return 1;
-                          min_index = map[min_index/2].node_link[2*k + (min_index & 0x01)]*2 + (min_index & 0x01);
+                          min_index = destination_map * 2 + (min_index & 0x01);
 
-                      } while (step--);
+                      } while (0 < step--);
 
                       prev_bearing = bearing;
                       min_index = destination;
-                      break;
+                      break_flag = 1;
                   }
+                  if (break_flag) { break; }
+                  next_min_index = map[next_min_index/2].node_link[2*k + (next_min_index & 0x01)]*2 + (min_index & 0x01);
                   step++;
               }
+              if (break_flag) { break_flag = 0; break; }
           } else {
               if ((path_length_table[min_index] - data.turncost) == (path_length_table[min_index ^ 0x01])) {
                   min_index = min_index ^ 0x01;

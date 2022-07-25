@@ -15,7 +15,6 @@
 #include "Maze.h"
 #include "configure.h"
 #include "Logging.h"
-#define DATALOG
 
 #ifdef DATALOG
 #define LOGGING(A)       data_log(A, 1)
@@ -83,8 +82,6 @@ void drop_command_queue(void) {
   profiler_data_ready = 0;
   speed = 0;
   Motor_Speed(speed, speed);
-//  LaunchPad_Output(RED);
-//  LaunchPad_Output1(RED);
 }
 
 // функция движения по сегменту.
@@ -334,7 +331,7 @@ int stop_difference, fail_difference, slow_difference;
   if (photo_data_ready ) {                                                      \
       photo_data_ready  = 0;                                                    \
       photo_sensor = current_sensor;                                            \
-      LOGGING(log_turn | photo_sensor);                                                                   \
+      LOGGING(log_turn | photo_sensor);                                         \
       if ((DIFF) < slow_difference) {                                           \
           if ((speed += data.acceleration) > data.maxmotor) speed = data.maxmotor;                     \
       } else {                                                                  \

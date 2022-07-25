@@ -36,6 +36,7 @@
 #include "profiler.h"
 #include "Maze.h"
 #include "rand.h"
+#include "inject_data.h"
 #include "placeholder.h"
 
 /***************************************************************************//**
@@ -93,6 +94,10 @@ void app_init(void)
       putstr(2, 3, "not present ", 0);
       update_display();
       while (kbdread() != KEY_DOWN) continue;
+  }
+  if (LaunchPad_Input() == 0x03) {
+      while (LaunchPad_Input() ) continue;
+      map_select();
   }
 }
 

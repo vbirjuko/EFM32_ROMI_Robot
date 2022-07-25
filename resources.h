@@ -11,13 +11,15 @@
 #define SSD1306
 #define OLED_SPI
 #define PCA
-
+#define DATALOG
 
 #define CPU_FREQ    (50)
 
 // Период опроса фотосенсоров
 #define REFL_PERIOD   (2500)
 #define FRAMESCANPERSECOND     (1000000/REFL_PERIOD)
+// Ширина колеи робота для вычисления поворотов
+#define TRACK_WIDE    (143)
 
 // TIMER1 - Motor PWM
 // TIMER2 - Reflectance sensor Light on/off, ADC start

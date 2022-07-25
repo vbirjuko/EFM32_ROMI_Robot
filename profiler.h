@@ -14,17 +14,20 @@ enum commands {
     command_forward =   0x10000000,
     // Поворот. Параметр 1 - вправо, 3 - влево, 2 - разворот.
     command_turn =      0x20000000,
+    // finish, entrance: Параметр сколько миллиметров проехать выходя излабиритна илисколько искать вход.
     command_finish  =   0x30000000,
     command_entrance =  0x40000000,
+    // Ожидание. Параметр - сколько фреймов ждать. По окончании, двигатели переволятся в спящий режим.
     command_wait    =   0x50000000,
     command_back    =   0x60000000,
     command_eof     =   0xF0000000
 };
+
 #define COMMAND_MASK    0xF0000000
 
 void block_profiler(unsigned int state);
-void drop_command_queue(void);
 unsigned int put_command(unsigned int command_data);
+void drop_command_queue(void);
 void profiler(void);
 void PendSVInit(void);
 

@@ -13,6 +13,7 @@
 #include "fonts.h"
 #include "spi_drv.h"
 #include "Reflectance.h"
+#include "math.h"
 
 #define 	INVERT	(1u<<7)
 #ifdef SSD1306
@@ -29,7 +30,7 @@ typedef void (*func_ptr)(void);
 eedata_t data;
 unsigned int config_validate(void);
 
-void do_menu(menuitem_t* item, unsigned int last_menu_item) {
+unsigned int do_menu(menuitem_t* item, unsigned int last_menu_item) {
   unsigned int update;
   int i, k;
   unsigned int j;
@@ -39,7 +40,7 @@ void do_menu(menuitem_t* item, unsigned int last_menu_item) {
   mode_t mode = select_mode;
   const unsigned char *str_ptr, speedtable[][4] = {"stop", "slow", "fast", "max "},
       directiontable[][5] = {"Forw ", "Right", "Back ", "Left "};
-  unsigned char	*txt_ptr, *vbuff_ptr;
+  unsigned char *txt_ptr, *vbuff_ptr;
   unsigned int number, keyb;
 
 
@@ -71,7 +72,7 @@ void do_menu(menuitem_t* item, unsigned int last_menu_item) {
                       }
                       if (leadingzero && (*vbuff_ptr == '0')) *vbuff_ptr = ' ';
                       divider--; vbuff_ptr++;
-                      //				if (*divider == 0) break;
+                      //        if (*divider == 0) break;
                   }
                   break;
 
@@ -117,9 +118,9 @@ void do_menu(menuitem_t* item, unsigned int last_menu_item) {
 
                 case none:
                 default:
-                  //						for (j = 11; j < 16; j++) {
-                  //							*vbuff_ptr++ = ' ';
-                  //						}
+                  //            for (j = 11; j < 16; j++) {
+                  //              *vbuff_ptr++ = ' ';
+                  //            }
                   break;
 
               }
@@ -137,7 +138,7 @@ void do_menu(menuitem_t* item, unsigned int last_menu_item) {
                       sel_length = 8; break;
                     default: sel_length = 16;
                   }
-                  for (j=0; j<sel_length; j++) 	*vbuff_ptr++ |= INVERT;
+                  for (j=0; j<sel_length; j++)  *vbuff_ptr++ |= INVERT;
                   // выделяем инверсией редактируемый знак
                   if (mode == edit_mode) {
                       switch (item[select].datatype) {
@@ -194,46 +195,46 @@ void do_menu(menuitem_t* item, unsigned int last_menu_item) {
         case select_mode:
           switch (keyb) {
             case KEY_UP:
-            case KEY_LEFT:
+//            case KEY_LEFT:
               if (--select < 0) select=0;
               if ((select - line_offset) < 0) line_offset = select;
               update = 1;
               break;
 
             case KEY_DOWN:
-            case KEY_RIGHT:
+//            case KEY_RIGHT:
               if (++select > (int)last_menu_item) select = last_menu_item;
               if ((select - line_offset) >= ROWS) line_offset = select - (ROWS - 1);
               update = 1;
               break;
 
             case KEY_SET:
-            case KEY_LEFT | KEY_RIGHT:
+//            case KEY_LEFT | KEY_RIGHT:
 
-            switch (item[select].datatype) {
-              case decimal:
-                mode = edit_mode;
-                editnum = 5; break;
-              case hex:
-                mode = edit_mode;
-                editnum = 4; break;
-              case hex32:
-                mode = edit_mode;
-                editnum = 8; break;
-              case speed_sel:
-                mode = edit_mode;
-                editnum = 2; break;
-              case direction_sel:
-                mode = edit_mode;
-                editnum = 1; break;
-              case execute:
-                ((func_ptr)item[select].variable)();
-                break;
-              case none:
-                return;
-            }
-            update = 1;
-            break;
+              switch (item[select].datatype) {
+                case decimal:
+                  mode = edit_mode;
+                  editnum = 5; break;
+                case hex:
+                  mode = edit_mode;
+                  editnum = 4; break;
+                case hex32:
+                  mode = edit_mode;
+                  editnum = 8; break;
+                case speed_sel:
+                  mode = edit_mode;
+                  editnum = 2; break;
+                case direction_sel:
+                  mode = edit_mode;
+                  editnum = 1; break;
+                case execute:
+                  ((func_ptr)item[select].variable)();
+                  break;
+                case none:
+                  return select;
+              }
+              update = 1;
+              break;
 
           }
           break;
@@ -242,7 +243,7 @@ void do_menu(menuitem_t* item, unsigned int last_menu_item) {
               switch (keyb) {
                 case KEY_UP:
                 case KEY_UP | HOLDED:
-                //					case KEY_LEFT:
+//                case KEY_LEFT:
                 update = 1;
                 stru_ptr = item[select].variable;// &data->threshold + select;
                 stru8_ptr = item[select].variable;
@@ -283,7 +284,7 @@ void do_menu(menuitem_t* item, unsigned int last_menu_item) {
 
                   case KEY_DOWN:
                   case KEY_DOWN | HOLDED:
-                  //					case KEY_RIGHT:
+//                  case KEY_RIGHT:
                   update = 1;
 
                   stru_ptr = item[select].variable; // &data->threshold + select;
@@ -323,7 +324,7 @@ void do_menu(menuitem_t* item, unsigned int last_menu_item) {
                   break;
 
                     case KEY_SET:
-                      //					case KEY_LEFT | KEY_RIGHT:
+//                    case KEY_LEFT | KEY_RIGHT:
                       update = 1;
                       if (--editnum == 0) {
                           mode = select_mode;
@@ -431,8 +432,8 @@ void Configure(void) {
   //  Motor_Speed(0, 0);
   do_menu((menuitem_t*) menu_item, ((sizeof(menu_item)/sizeof(menu_item[0]))-1));
   //  data_ptr = (uint32_t*) &data;
-  unsigned int valid_error_code = (config_validate());
-  if (valid_error_code  & 0x01) {
+  unsigned int validation_error_code = (config_validate());
+  if (validation_error_code  & 0x01) {
       squareXY(0, 0, 127, 63, 0);
       update_display();
       putstr(0, 2, "data validation", 0);
@@ -441,11 +442,20 @@ void Configure(void) {
       putstr(0, 5, "  Corrected.   ", 0);
       while (kbdread() != KEY_DOWN) continue;
   }
-  if (valid_error_code & 0x02) {
+  if (validation_error_code & 0x02) {
       squareXY(0, 0, 127, 63, 0);
       update_display();
       putstr(0, 3, "data validation", 0);
       putstr(0, 4, "  Vbat error.  ", 0);
+      while (kbdread() != KEY_DOWN) continue;
+  }
+  if (validation_error_code & 0x04) {
+      squareXY(0, 0, 127, 63, 0);
+      update_display();
+      putstr(0, 2, "data validation", 0);
+      putstr(0, 3, "Min speed/Offs.", 0);
+      putstr(0, 4, "    error.     ", 0);
+      putstr(0, 5, "  Corrected.   ", 0);
       while (kbdread() != KEY_DOWN) continue;
   }
 
@@ -461,11 +471,15 @@ unsigned int config_validate(void) {
   if (data.cell_step) {
       if ((data.cell_step*3/4) < data.tolerance) {
           data.tolerance = data.cell_step*3/4;
-          result = 1;
+          result |= 1;
       }
   }
   if (data.low_battery_level * data.volt_calibr >= 10000) {
-      result = 2;
+      result |= 2;
+  }
+  if (data.sensor_offset < (data.minspeed*data.minspeed)/data.acceleration*11/240000) {
+      data.minspeed = sqrt(data.sensor_offset*data.acceleration*240000LL/11);
+      result |= 4;
   }
   return result;
 }
