@@ -402,10 +402,10 @@ void profiler(void) {
           SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать сразу
           break;
 
-          // движение прямо по сегменту. В младших битах длина сегмента для расчета разгона и торможения
-          // разделяется на 3 фазы: движение по прямой линии, иссзледование узла и выравнивание ЦТ над узлом.
-          // так же проверяются следующие команды и если они тоже движение прямо разгон и торможение расчитываются
-          // с учетом последующих сегментов и тогда на промежуточных узлах выравнивание не выполняется.
+        // движение прямо по сегменту. В младших битах длина сегмента для расчета разгона и торможения
+        // разделяется на 3 фазы: движение по прямой линии, иссзледование узла и выравнивание ЦТ над узлом.
+        // так же проверяются следующие команды и если они тоже движение прямо разгон и торможение расчитываются
+        // с учетом последующих сегментов и тогда на промежуточных узлах выравнивание не выполняется.
         case command_forward:
           state = segment_run;
           Motor_Enable();
@@ -419,10 +419,10 @@ void profiler(void) {
           if (speed == 0) startdistance = CURRENT_DISTANCE;
           // Расстояние, необходимое для торможения, если максимальная скорость не набирается:
           // (220mm/100)^2 * (V^2 - v^2) / (4 * a * 400*60)  + distance/2
-          brakepath1 = (speed*speed - data.minspeed*data.minspeed)/data.acceleration * 11/480000 + total_length/2;
+          brakepath1 = (speed*speed - data.minspeed*data.minspeed)/data.acceleration * 121/2400000 + total_length/2;
           // Расстояние, необходимое для торможения от максимальной скорости:
           // (220mm/100)^2 * (V^2 - v^2) / (2 * a * 400*60)
-          brakepath2 = (data.maxspeed*data.maxspeed - data.minspeed*data.minspeed)/data.acceleration*11/240000;
+          brakepath2 = (data.maxspeed*data.maxspeed - data.minspeed*data.minspeed)/data.acceleration*121/1200000;
           // используем вариант с самым коротким тормозным путём
           if ((brakepath1 < brakepath2) && (brakepath1 >= 0)) {
               slowdistance = startdistance + total_length - data.sensor_offset - brakepath1;
@@ -435,12 +435,12 @@ void profiler(void) {
           break;
 
 
-          // Поворот в узле. В младших битах параметр поворота 1-вправо на 90 градусов,
-          // 2- разворот на 180 градусов, 3-влево на 90 градусов.
-          // любой другой аргумент приводит к отмене очереди команд. Направление разворота зависит
-          // от предыдущего поворота и выполняется в противоположном направлении.
-          // Если при выполнении поворота или разворота поворот по одометру не попадает в валидное
-          // окно, то считается ошибкой и происходит отмена очереди команд.
+        // Поворот в узле. В младших битах параметр поворота 1-вправо на 90 градусов,
+        // 2- разворот на 180 градусов, 3-влево на 90 градусов.
+        // любой другой аргумент приводит к отмене очереди команд. Направление разворота зависит
+        // от предыдущего поворота и выполняется в противоположном направлении.
+        // Если при выполнении поворота или разворота поворот по одометру не попадает в валидное
+        // окно, то считается ошибкой и происходит отмена очереди команд.
         case command_turn:
           turn_dir = command_param;
           if (turn_dir == back) {
@@ -475,137 +475,137 @@ void profiler(void) {
           SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать двигаться сразу
           break;
 
-            case command_entrance:
-              state = do_entrance;
-              speed = 0;
-              Motor_Enable();
-              total_length = command_param;
-              if (total_length) {
-                  ii = 1;
-                  while (((command = read_command(ii++)) & COMMAND_MASK) == command_forward) {
-                      total_length += (command & ~COMMAND_MASK);
-                  }
+        case command_entrance:
+          state = do_entrance;
+          speed = 0;
+          Motor_Enable();
+          total_length = command_param;
+          if (total_length) {
+              ii = 1;
+              while (((command = read_command(ii++)) & COMMAND_MASK) == command_forward) {
+                  total_length += (command & ~COMMAND_MASK);
               }
-              startdistance = CURRENT_DISTANCE;
-              brakepath1 = (total_length/2) - (data.minspeed*data.minspeed)/data.acceleration * 11/480000;
-              // используем вариант с самым коротким тормозным путём
-              slowdistance = startdistance + total_length - data.sensor_offset - brakepath1;
-              guarddistance = startdistance + command_param; //   15см защитный интервал
-              SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать двигаться сразу
-              break;
+          }
+          startdistance = CURRENT_DISTANCE;
+          brakepath1 = (total_length/2) - (data.minspeed*data.minspeed)/data.acceleration * 121/2400000;
+          // используем вариант с самым коротким тормозным путём
+          slowdistance = startdistance + total_length - data.sensor_offset - brakepath1;
+          guarddistance = startdistance + command_param; //   15см защитный интервал
+          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать двигаться сразу
+          break;
 
-              // Проезжаем на 10 см вперед на скорости data.turnspeed, чтобы встать на финишное поле.
-            case command_finish:
-              state = blind_run;
-              Motor_Enable();
-              guarddistance = CURRENT_DISTANCE + 100;
-              SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать двигаться сразу
-              break;
+        // Проезжаем на 10 см вперед на скорости data.turnspeed, чтобы встать на финишное поле.
+        case command_finish:
+          state = blind_run;
+          Motor_Enable();
+          guarddistance = CURRENT_DISTANCE + 100;
+          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать двигаться сразу
+          break;
 
-            case command_back:
-              state = blind_back;
-              Motor_Enable();
-              guarddistance = CURRENT_DISTANCE - command_param;
-              slowdistance  = CURRENT_DISTANCE - command_param/2;
-              SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
-              break;
+        case command_back:
+          state = blind_back;
+          Motor_Enable();
+          guarddistance = CURRENT_DISTANCE - command_param;
+          slowdistance  = CURRENT_DISTANCE - command_param/2;
+          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
+          break;
 
-            default:
-              profiler_error_code = profiler_error_cmd_err;
-              drop_command_queue();
-              break;
+        default:
+          profiler_error_code = profiler_error_cmd_err;
+          drop_command_queue();
+          break;
       }
       break;
       // конец интерпретации команд.
 
-      // Состояния профайлера. switch (state) продолжение
-        case segment_run:
-          if (run_segment()) {
-              state = check;
-              guarddistance = startdistance = CURRENT_DISTANCE + data.sensor_offset;
-          }
-          break;
+    // Состояния профайлера. switch (state) продолжение
+    case segment_run:
+      if (run_segment()) {
+          state = check;
+          guarddistance = startdistance = CURRENT_DISTANCE + data.sensor_offset;
+      }
+      break;
 
-        case check:
-          if (check_node()) {
-              if ((read_command(1) & COMMAND_MASK) != command_forward) {
-                  state = blind_run;
-              } else {
-                  state = idle; // читаем следующую команду
-              }
-          }
-          break;
-
-        case blind_run:
-          if ((read_command(1) & COMMAND_MASK) != command_forward){
-              if (slowdown()) {
-                  speed = 0;
-                  Motor_Speed(0, 0);
-                  state = idle;
-              }
+    case check:
+      if (check_node()) {
+          if ((read_command(1) & COMMAND_MASK) != command_forward) {
+              state = blind_run;
           } else {
-              state = idle;
+              state = idle; // читаем следующую команду
           }
-          break;
+      }
+      break;
 
-        case blind_back:
-          if (back_run()) {
+    case blind_run:
+      if ((read_command(1) & COMMAND_MASK) != command_forward){
+          if (slowdown()) {
               speed = 0;
               Motor_Speed(0, 0);
               state = idle;
           }
-          break;
-
-        case wait_still:
-          if (wait()) {
-              state = idle;
-              Motor_Disable();
-          }
-          break;
-
-        case turn_left:
-          if ((cmd_status = make_turn_left()) > 0) {
-              speed = 0;
-              state = idle;
-              reset_steps();
-              real_direction -= (degree == 90) ? 1 : 2;
-              real_direction &= TURN_MASK;
-              if (cmd_status > 1) {
-                  profiler_error_code = profiler_error_turn;
-                  drop_command_queue();
-              }
-          }
-          break;
-
-        case turn_right:
-          if ((cmd_status = make_turn_right()) > 0) {
-              speed = 0;
-              state = idle;
-              reset_steps();
-              real_direction += (degree == 90) ? 1 : 2;
-              real_direction &= TURN_MASK;
-              if (cmd_status > 1) {
-                  profiler_error_code = profiler_error_turn;
-                  drop_command_queue();
-              }
-          }
-          break;
-
-        case do_entrance:
-          if ((cmd_status = blind_entrance()) > 0) {
-              state = idle;
-              startdistance = CURRENT_DISTANCE + data.sensor_offset;
-              if (cmd_status > 1) {
-                  profiler_error_code = profiler_error_no_entrance;
-                  drop_command_queue();
-              }
-          }
-          break;
-
-        default:
+      } else {
           state = idle;
-          profiler_error_code = profiler_error_state_err;
-          drop_command_queue();
+      }
+      break;
+
+    case blind_back:
+      if (back_run()) {
+          speed = 0;
+          Motor_Speed(0, 0);
+          state = idle;
+      }
+      break;
+
+    case wait_still:
+      if (wait()) {
+          state = idle;
+          Motor_Disable();
+      }
+      break;
+
+    case turn_left:
+      if ((cmd_status = make_turn_left()) > 0) {
+          speed = 0;
+          state = idle;
+          reset_steps();
+          real_direction -= (degree == 90) ? 1 : 2;
+          real_direction &= TURN_MASK;
+          if (cmd_status > 1) {
+              profiler_error_code = profiler_error_turn;
+              drop_command_queue();
+          }
+      }
+      break;
+
+    case turn_right:
+      if ((cmd_status = make_turn_right()) > 0) {
+          speed = 0;
+          state = idle;
+          reset_steps();
+          real_direction += (degree == 90) ? 1 : 2;
+          real_direction &= TURN_MASK;
+          if (cmd_status > 1) {
+              profiler_error_code = profiler_error_turn;
+              drop_command_queue();
+          }
+      }
+      break;
+
+    case do_entrance:
+      if ((cmd_status = blind_entrance()) > 0) {
+          state = idle;
+          startdistance = CURRENT_DISTANCE + data.sensor_offset;
+          if (cmd_status > 1) {
+              profiler_error_code = profiler_error_no_entrance;
+              drop_command_queue();
+          }
+      }
+      break;
+
+    default:
+      state = idle;
+      profiler_error_code = profiler_error_state_err;
+      drop_command_queue();
   }
 }
 

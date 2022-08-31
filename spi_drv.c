@@ -29,7 +29,7 @@ LDMA_TransferCfg_t OLED_txferCfg = LDMA_TRANSFER_CFG_PERIPHERAL(ldmaPeripheralSi
 LDMA_Descriptor_t OLED_tx_descriptor[] =
     {
       LDMA_DESCRIPTOR_LINKREL_SYNC(0, 0x80, 0x00, 0x00, 1),
-      LDMA_DESCRIPTOR_LINKREL_WRITE(0, &GPIO->P[gpioPortA].DOUT, 1),
+//      LDMA_DESCRIPTOR_LINKREL_WRITE(0, &GPIO->P[gpioPortA].DOUT, 1),
       LDMA_DESCRIPTOR_LINKREL_WRITE(USART_CMD_RXDIS, &USART3->CMD, 1),
       LDMA_DESCRIPTOR_LINKREL_WRITE(USART_ROUTELOC0_CLKLOC_LOC0 | USART_ROUTELOC0_CSLOC_LOC0 |
                                     USART_ROUTELOC0_RXLOC_LOC0 | USART_ROUTELOC0_TXLOC_LOC0,
@@ -43,12 +43,13 @@ void lcdwrite(unsigned char* data_ptr, unsigned int count, lcddatacommand dc){
   while (tx_busy) continue;
   tx_busy = 1;
 
-  OLED_tx_descriptor[1].wri.immVal = (dc << 5)|(1 << 4)|(1 << 3)|launchpad_LED_state|(1 << 15);
+//  OLED_tx_descriptor[1].wri.immVal = (dc << 5)|(1 << 4)|(1 << 3)|launchpad_LED_state|(1 << 15);
 
-  OLED_tx_descriptor[4].xfer.xferCnt = count - 1;
-  OLED_tx_descriptor[4].xfer.srcAddr = (uint32_t) data_ptr;
+  OLED_tx_descriptor[3].xfer.xferCnt = count - 1;
+  OLED_tx_descriptor[3].xfer.srcAddr = (uint32_t) data_ptr;
+  OLED_tx_descriptor[3].xfer.doneIfs = 0; // это прерывание не нужно.
   OLED_tx_descriptor[4].xfer.doneIfs = 0; // это прерывание не нужно.
-  OLED_tx_descriptor[5].xfer.doneIfs = 0; // это прерывание не нужно.
+  BUS_RegBitWrite(&GPIO->P[gpioPortA].DOUT, 5, dc);
 
   LDMA_StartTransfer(LDMA_USART_OLED_CHANNEL, &OLED_txferCfg, (void *)&OLED_tx_descriptor);
 }

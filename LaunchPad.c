@@ -63,18 +63,18 @@ void LaunchPad_LED(uint8_t data) {
  */
 #include "em_bus.h"
 
-volatile uint32_t launchpad_LED_state = 0;
+//volatile uint32_t launchpad_LED_state = 0;
 
 void LaunchPad_Output(uint8_t data) {
   data ^= 0x07;
   BUS_RegBitWrite((volatile uint32_t *)&GPIO->P[gpioPortA].DOUT, 12, data & 0x01);
-  BUS_RamBitWrite(&launchpad_LED_state, 12, data & 0x01);
+//  BUS_RamBitWrite(&launchpad_LED_state, 12, data & 0x01);
   data >>= 1;
   BUS_RegBitWrite((volatile uint32_t *)&GPIO->P[gpioPortA].DOUT, 14, data & 0x01);
-  BUS_RamBitWrite(&launchpad_LED_state, 14, data & 0x01);
+//  BUS_RamBitWrite(&launchpad_LED_state, 14, data & 0x01);
   data >>= 1;
   BUS_RegBitWrite((volatile uint32_t *)&GPIO->P[gpioPortA].DOUT, 13, data & 0x01);
-  BUS_RamBitWrite(&launchpad_LED_state, 13, data & 0x01);
+//  BUS_RamBitWrite(&launchpad_LED_state, 13, data & 0x01);
 }
 
 void LaunchPad_Output1(uint8_t data) {

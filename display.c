@@ -149,7 +149,7 @@ void show_hystogram(uint8_t mask, uint8_t *photo_sensor, unsigned int threshold,
 	    videobuff[3] = 0x11;
 	}
 	
-	for (i = 4; i<8; i++) {
+	for (i = 4; i < 8; i++) {
 		while (number >= divider) {
 			number -= divider;
 			videobuff[i]++;
@@ -192,14 +192,15 @@ LDMA_Descriptor_t tx_descriptor[] = {
     LDMA_DESCRIPTOR_LINKREL_WRITE(USART_ROUTELOC0_CLKLOC_LOC0 | USART_ROUTELOC0_CSLOC_LOC0 |
                                   USART_ROUTELOC0_RXLOC_LOC0 | USART_ROUTELOC0_TXLOC_LOC0,
                                   &USART3->ROUTELOC0, 1),
-    LDMA_DESCRIPTOR_LINKREL_WRITE(0, &GPIO->P[gpioPortA].DOUT, 1),
+//    LDMA_DESCRIPTOR_LINKREL_WRITE(0, &GPIO->P[gpioPortA].DOUT, 1),
     LDMA_DESCRIPTOR_LINKREL_M2P_BYTE(start_col, &USART3->TXDATA, sizeof(start_col), 1),
     LDMA_DESCRIPTOR_LINKREL_SYNC(0, 0x80, 0x80, 0x80, 1),
     LDMA_DESCRIPTOR_LINKREL_WRITE(USART_CMD_RXDIS, &USART3->CMD, 1),
     LDMA_DESCRIPTOR_LINKREL_WRITE(USART_ROUTELOC0_CLKLOC_LOC0 | USART_ROUTELOC0_CSLOC_LOC0 |
                                   USART_ROUTELOC0_RXLOC_LOC0 | USART_ROUTELOC0_TXLOC_LOC0,
                                   &USART3->ROUTELOC0, 1),
-    LDMA_DESCRIPTOR_LINKREL_WRITE(0, &GPIO->P[gpioPortA].DOUT, 1),
+//    LDMA_DESCRIPTOR_LINKREL_WRITE(0, &GPIO->P[gpioPortA].DOUT, 1),
+    LDMA_DESCRIPTOR_LINKREL_WRITE(1 << 5, &GPIO->P[gpioPortA].DOUTTGL, 1),
     LDMA_DESCRIPTOR_LINKREL_M2P_BYTE(buffer, &USART3->TXDATA, sizeof(buffer), 1),
     LDMA_DESCRIPTOR_SINGLE_WRITE(0, &tx_busy)
 };
@@ -214,8 +215,9 @@ void update_display(void) {
     while (tx_busy) continue;
 
     tx_busy = 1;
-    tx_descriptor[3].wri.immVal = launchpad_LED_state | (lcdcommand << 5)|(1 << 4)|(1 << 3)| (0 << 8) | (1 << 15);
-    tx_descriptor[8].wri.immVal = launchpad_LED_state | (lcddata    << 5)|(1 << 4)|(1 << 3)| (0 << 8) | (1 << 15);
+    BUS_RegBitWrite(&GPIO->P[gpioPortA].DOUT, 5, lcdcommand);
+//    tx_descriptor[3].wri.immVal = launchpad_LED_state | (lcdcommand << 5)|(1 << 4)|(1 << 3)| (0 << 8) | (1 << 15);
+//    tx_descriptor[8].wri.immVal = launchpad_LED_state | (lcddata    << 5)|(1 << 4)|(1 << 3)| (0 << 8) | (1 << 15);
     tx_descriptor[4].xfer.doneIfs = 0;
     tx_descriptor[9].xfer.doneIfs = 0;
     LDMA_StartTransfer(LDMA_USART_OLED_CHANNEL, &txferCfg, (void*)&tx_descriptor);
