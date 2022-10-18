@@ -849,7 +849,7 @@ const Cmd_t Table[]={
     {"dump_map",		    &dump_map, NULL},
     {"show_path",       &show_path, NULL},
     {"time_to_run",     &time_to_run_straight, NULL},
-    {"init_brkpth",   &init_brakepath, NULL},
+    {"init_brkpth",     &init_brakepath, NULL},
     {"list",            &list_values, NULL},
     {"words",           &list_cmd, NULL},
 };

@@ -519,14 +519,14 @@ int TimeToRunStraight(int distance) {  // in milliseconds from millimeters.
   else return 1;
 }
 
-#define TURN_LENGTH  ((TRACK_WIDE * 314 + 200) / 400)
+#define TURNCOST  ((TRACK_WIDE * 314 + 200) / 400)
 
 void InitBrakePath(void) {
   // Расстояние, необходимое для торможения от максимальной скорости:
   // (220mm/100)^2 * (V^2 - v^2) / (2 * a * 400*60)
   brakepath = (data.maxmotor*data.maxmotor)/data.acceleration*121/1200000;
   // turn length: 143mm wide * Pi / 4 = 112mm - each wheel run to turn 90 degree.
-  data.turncost = TimeToRunStraight(TURN_LENGTH);
+  data.turncost = TimeToRunStraight(TURNCOST);
 }
 
 unsigned int Search_Short_Way_with_turns(void) {
@@ -688,7 +688,7 @@ unsigned int search_way_simple(unsigned int start, unsigned int finish, bearing_
           }
       }
 
-      distance = TURN_LENGTH;
+      distance = TURNCOST;
       destination = min_index ^ 0x01;
       if (path_length_table[destination] > (path_length_table[min_index] + distance)) {
           path_length_table[destination] = path_length_table[min_index] + distance;
@@ -729,7 +729,7 @@ unsigned int search_way_simple(unsigned int start, unsigned int finish, bearing_
                   }
               }
           } else {
-              if ((path_length_table[min_index] - TURN_LENGTH) == (path_length_table[min_index ^ 0x01])) {
+              if ((path_length_table[min_index] - TURNCOST) == (path_length_table[min_index ^ 0x01])) {
                   min_index = min_index ^ 0x01;
                   break;
               }

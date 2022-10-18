@@ -1,5 +1,5 @@
 Thunderboard>list
-Threshold 160 swap !
+Threshold     160 swap !
 MAXspeed      16000 swap !
 MINspeed      10000 swap !
 MAXmotor      16000 swap !

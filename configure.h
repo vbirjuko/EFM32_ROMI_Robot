@@ -37,7 +37,7 @@ typedef struct {
     int low_battery_level;
     int ignore_coordinate_error;
     int turncost;
-    int crosscost;    // obsolete
+    int crosscost;    // obsolete переделать на односвязный/многосвязный лабиринт
     int green_cell_nr;
     int volt_calibr;
     int stepcost;

@@ -23,13 +23,12 @@
 #endif
 
 
-#define COMMAND_FACTOR  7
+#define COMMAND_QUEUE_FACTOR  7
 #define MINRPM  (1600)
 
 // 220mm per 360 tick of two wheels.
-#define CURRENT_DISTANCE  (((int32_t)LeftSteps + (int32_t)RightSteps) * 11L / (2*36))
-// 143mm wide ~ 449 mm length / 220mm wheel step and multiply 720 pulse = 1470 pulse
-#define DEGREE(x)  ((x*49L)/6)
+//#define CURRENT_DISTANCE  (((int32_t)LeftSteps + (int32_t)RightSteps) * 11L / (2*36))
+#define CURRENT_DISTANCE    STEPS_TO_MM((int32_t)LeftSteps + (int32_t)RightSteps)
 
 int speed = 0;
 int slowdistance, startdistance, guarddistance, wait_counter;
@@ -39,7 +38,7 @@ volatile unsigned int segment_length, node_configuration, real_direction = north
     profiler_queue_empty = 1, profiler_error_code = no_profiler_error;
 
 
-volatile unsigned int command_queue[1ul << COMMAND_FACTOR], command_read_idx = 126, command_write_idx = 126;
+volatile unsigned int command_queue[1ul << COMMAND_QUEUE_FACTOR], command_read_idx = 126, command_write_idx = 126;
 volatile unsigned int block_command_read = 0;
 
 void block_profiler(unsigned int state) {
@@ -50,7 +49,7 @@ unsigned int get_command(void) {
   unsigned int result;
   if (command_read_idx == command_write_idx) return command_eof;
   result = command_queue[command_read_idx++];
-  command_read_idx &= (1ul << COMMAND_FACTOR) - 1;
+  command_read_idx &= (1ul << COMMAND_QUEUE_FACTOR) - 1;
   return result;
 }
 
@@ -61,16 +60,16 @@ unsigned int read_command(unsigned int ahead) {
       if (new_idx == command_write_idx) return command_eof;
       result = command_queue[new_idx];
       ++new_idx;
-      new_idx &= ((1ul << COMMAND_FACTOR) - 1);
+      new_idx &= ((1ul << COMMAND_QUEUE_FACTOR) - 1);
   }
   return result;
 }
 
 unsigned int put_command(unsigned int command_data) {
-  if (((command_write_idx + 1) & ((1ul << COMMAND_FACTOR) - 1)) == command_read_idx) return 1;
+  if (((command_write_idx + 1) & ((1ul << COMMAND_QUEUE_FACTOR) - 1)) == command_read_idx) return 1;
   command_queue[command_write_idx] = command_data;
   __disable_irq();
-  command_write_idx = (command_write_idx + 1) & ((1ul << COMMAND_FACTOR) - 1);
+  command_write_idx = (command_write_idx + 1) & ((1ul << COMMAND_QUEUE_FACTOR) - 1);
   __enable_irq();
   return 0;
 }
@@ -402,9 +401,9 @@ void profiler(void) {
           SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать сразу
           break;
 
-        // движение прямо по сегменту. В младших битах длина сегмента для расчета разгона и торможения
-        // разделяется на 3 фазы: движение по прямой линии, иссзледование узла и выравнивание ЦТ над узлом.
-        // так же проверяются следующие команды и если они тоже движение прямо разгон и торможение расчитываются
+        // движение прямо по сегменту. В младших битах длина сегмента для расчета разгона и торможения.
+        // разделяется на 3 фазы: движение по прямой линии, исследование узла и выравнивание ЦТ над узлом.
+        // так же проверяются следующие команды и если они тоже движение прямо, разгон и торможение расчитываются
         // с учетом последующих сегментов и тогда на промежуточных узлах выравнивание не выполняется.
         case command_forward:
           state = segment_run;
@@ -412,17 +411,18 @@ void profiler(void) {
           total_length = command_param;
           if (total_length) {
               ii = 1;
-              while (((command = read_command(ii++)) & COMMAND_MASK) == command_forward) {
+              while ((((command = read_command(ii++)) & COMMAND_MASK) == command_forward) ||
+                      ((command & COMMAND_MASK) == command_finish)) {
                   total_length += (command & ~COMMAND_MASK);
               }
           }
           if (speed == 0) startdistance = CURRENT_DISTANCE;
           // Расстояние, необходимое для торможения, если максимальная скорость не набирается:
           // (220mm/100)^2 * (V^2 - v^2) / (4 * a * 400*60)  + distance/2
-          brakepath1 = (speed*speed - data.minspeed*data.minspeed)/data.acceleration * 121/2400000 + total_length/2;
+          brakepath1 = (long long)(speed + data.minspeed)*(speed - data.minspeed) * 121/data.acceleration/2400000 + total_length/2;
           // Расстояние, необходимое для торможения от максимальной скорости:
           // (220mm/100)^2 * (V^2 - v^2) / (2 * a * 400*60)
-          brakepath2 = (data.maxspeed*data.maxspeed - data.minspeed*data.minspeed)/data.acceleration*121/1200000;
+          brakepath2 = (long long)(data.maxspeed + data.minspeed)*(data.maxspeed - data.minspeed) * 121/data.acceleration/1200000;
           // используем вариант с самым коротким тормозным путём
           if ((brakepath1 < brakepath2) && (brakepath1 >= 0)) {
               slowdistance = startdistance + total_length - data.sensor_offset - brakepath1;
@@ -450,21 +450,35 @@ void profiler(void) {
               degree = 90;
           }
           Motor_Enable();
+
+          stop_difference = ((degree == 180) ? DEGREE_TO_STEPS(135) : DEGREE_TO_STEPS(45));
+          fail_difference = ((degree == 180) ? DEGREE_TO_STEPS(270) : DEGREE_TO_STEPS(135));
+//          slow_difference = ((degree == 180) ? DEGREE(120) : DEGREE(60));
+          {
+              int circle_length = (degree == 180) ? (180 * TRACK_WIDE * 314)+(100*360/2) / (100 * 360) : (90 * TRACK_WIDE * 314)+(100*360/2) / (100 * 360);
+              int brakepath = (long long)data.maxmotor*data.maxmotor * 121/data.acceleration/1200000;
+              if ((brakepath * 2) > circle_length) {
+                  slow_difference = MM_TO_STEPS(circle_length/2);
+              } else {
+                  slow_difference = MM_TO_STEPS(brakepath);
+              }
+          }
+
           switch (turn_dir) {
             case left:      // turn left
               last_turn = left;
               state = turn_left;
-              stop_difference = (RightSteps - LeftSteps) + ((degree == 180) ? DEGREE(135) : DEGREE(45));
-              slow_difference = (RightSteps - LeftSteps) + ((degree == 180) ? DEGREE(120) : DEGREE(60));
-              fail_difference = (RightSteps - LeftSteps) + ((degree == 180) ? DEGREE(270) : DEGREE(135));
+              stop_difference += (RightSteps - LeftSteps);
+              slow_difference += (RightSteps - LeftSteps);
+              fail_difference += (RightSteps - LeftSteps);
               break;
 
             case right:
               last_turn = right;
               state = turn_right;
-              stop_difference = (LeftSteps - RightSteps) + ((degree == 180) ? DEGREE(135) : DEGREE(45));
-              slow_difference = (LeftSteps - RightSteps) + ((degree == 180) ? DEGREE(120) : DEGREE(60));
-              fail_difference = (LeftSteps - RightSteps) + ((degree == 180) ? DEGREE(270) : DEGREE(135));
+              stop_difference += (LeftSteps - RightSteps);
+              slow_difference += (LeftSteps - RightSteps);
+              fail_difference += (LeftSteps - RightSteps);
               break;
 
             default:

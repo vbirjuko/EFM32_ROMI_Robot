@@ -2,7 +2,7 @@
 #include "resources.h"
 
 #ifdef SSD1306
-#include "Adafruit_SSD1306.h"
+#include <Adafruit_SSD1306.h>
 #elif defined SH1106
 #include "Adafruit_SH1106.h"
 #endif
