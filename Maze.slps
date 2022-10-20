@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="ASCII"?>
 <model:MDescriptors xmlns:model="http://www.silabs.com/ss/Studio.ecore">
   <descriptors name="Maze">
-    <properties key="projectCommon.sdkId" value="com.silabs.sdk.stack.super:4.1.0._-286457911"/>
+    <properties key="projectCommon.sdkId" value="com.silabs.sdk.stack.super:4.1.2._-286457911"/>
     <properties key="universalConfig.generationDirectory" value=""/>
     <properties key="universalConfig.toolchainCompatibility" value="iar gcc"/>
     <properties key="projectCommon.boardIds" value="brd2207a:0.0.0"/>

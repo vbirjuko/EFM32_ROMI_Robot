@@ -512,7 +512,10 @@ void profiler(void) {
         case command_finish:
           state = blind_run;
           Motor_Enable();
-          guarddistance = CURRENT_DISTANCE + 100;
+          if (speed == 0) startdistance = CURRENT_DISTANCE;
+          guarddistance = (command & ~COMMAND_MASK);
+          if (guarddistance == 0) guarddistance = 100;
+          guarddistance += startdistance;
           SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать двигаться сразу
           break;
 
@@ -542,10 +545,12 @@ void profiler(void) {
 
     case check:
       if (check_node()) {
-          if ((read_command(1) & COMMAND_MASK) != command_forward) {
-              state = blind_run;
-          } else {
+          unsigned int next_command = read_command(1) & COMMAND_MASK;
+          if ((next_command == command_forward) ||
+              (next_command == command_finish)) {
               state = idle; // читаем следующую команду
+          } else {
+              state = blind_run;
           }
       }
       break;
