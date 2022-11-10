@@ -67,6 +67,10 @@ unsigned int do_menu(menuitem_t* item, unsigned int last_menu_item);
 #define EEPROM_CONFIG_ADDRESS 0x00000
 #define ROM_map_addr          0x10000
 
+//#if EEPROM_CONFIG_ADDRESS + sizeof(eedata_t)) gt ROM_map_addr
+//#error "Memory overlap"
+//#endif
+
 // Должно быть кратно 64k
 #define LOG_ADDRESS           0x20000
 #define LOG_END_ADDRESS       0x3FFFF

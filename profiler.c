@@ -384,8 +384,7 @@ void profiler(void) {
   unsigned int command, command_param, total_length, ii, cmd_status;
   int brakepath1, brakepath2;
 
-  switch (state) {
-    case idle:
+  if (state == idle) {
       if (block_command_read) return;
       command  = get_command();
       command_param = command & ~COMMAND_MASK;
@@ -398,7 +397,7 @@ void profiler(void) {
         case command_wait:
           wait_counter = command_param;
           state = wait_still;
-          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать сразу
+//          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать сразу
           break;
 
         // движение прямо по сегменту. В младших битах длина сегмента для расчета разгона и торможения.
@@ -431,7 +430,7 @@ void profiler(void) {
           }
           guarddistance = startdistance + data.guarddist;
 
-          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать двигаться сразу
+//          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать двигаться сразу
           break;
 
 
@@ -486,7 +485,7 @@ void profiler(void) {
               drop_command_queue();
               state = idle;
           }
-          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать двигаться сразу
+//          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать двигаться сразу
           break;
 
         case command_entrance:
@@ -505,7 +504,7 @@ void profiler(void) {
           // используем вариант с самым коротким тормозным путём
           slowdistance = startdistance + total_length - data.sensor_offset - brakepath1;
           guarddistance = startdistance + command_param; //   15см защитный интервал
-          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать двигаться сразу
+//          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать двигаться сразу
           break;
 
         // Проезжаем на 10 см вперед на скорости data.turnspeed, чтобы встать на финишное поле.
@@ -516,7 +515,7 @@ void profiler(void) {
           guarddistance = (command & ~COMMAND_MASK);
           if (guarddistance == 0) guarddistance = 100;
           guarddistance += startdistance;
-          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать двигаться сразу
+//          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать двигаться сразу
           break;
 
         case command_back:
@@ -524,7 +523,7 @@ void profiler(void) {
           Motor_Enable();
           guarddistance = CURRENT_DISTANCE - command_param;
           slowdistance  = CURRENT_DISTANCE - command_param/2;
-          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
+//          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
           break;
 
         default:
@@ -532,9 +531,10 @@ void profiler(void) {
           drop_command_queue();
           break;
       }
-      break;
+//      break;
       // конец интерпретации команд.
-
+  }
+  switch (state) {
     // Состояния профайлера. switch (state) продолжение
     case segment_run:
       if (run_segment()) {
@@ -622,9 +622,11 @@ void profiler(void) {
       break;
 
     default:
-      state = idle;
-      profiler_error_code = profiler_error_state_err;
-      drop_command_queue();
+      if (state != idle) {
+        state = idle;
+        profiler_error_code = profiler_error_state_err;
+        drop_command_queue();
+      }
   }
 }
 
