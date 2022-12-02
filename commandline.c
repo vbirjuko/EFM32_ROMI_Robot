@@ -20,7 +20,7 @@
 //#include "UART1.h"
 #include "spi_drv.h"
 #include "battery.h"
-#include "fonts.h"
+//#include "fonts.h"
 #include "commandline.h"
 #include "crc.h"
 #include "Motor.h"
@@ -577,6 +577,7 @@ uint32_t OutNum(instance_t *instance, int * none) {
 void print_row(instance_t *instance, unsigned int addr, unsigned int addrsize, uint8_t *scratchpad, unsigned int rowsize){
     unsigned int val, ii, jj;
     char str[10];
+    const char hextable[16] = "0123456789ABCDEF";
 
     val = addr;
     for (ii = addrsize; ii > 0; ii--) {
@@ -849,7 +850,7 @@ const Cmd_t Table[]={
     {"dump_map",		    &dump_map, NULL},
     {"show_path",       &show_path, NULL},
     {"time_to_run",     &time_to_run_straight, NULL},
-    {"init_brkpth",   &init_brakepath, NULL},
+    {"init_brkpth",     &init_brakepath, NULL},
     {"list",            &list_values, NULL},
     {"words",           &list_cmd, NULL},
 };

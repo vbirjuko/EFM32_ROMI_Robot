@@ -36,6 +36,7 @@ volatile uint32_t EventCountLeft = 0, EventCountRight = 0;
 
 void tachometerwLeftInt(uint32_t currenttime){
   static uint32_t Tachometer_PrevTime = 0;
+  if ((currenttime - Tachometer_PrevTime) < 8000) return;
   if (PCNT1->STATUS & PCNT_STATUS_DIR) {
       TachLeft.Dir = REVERSE;
   } else {
@@ -64,6 +65,7 @@ void tachometerwLeftInt(uint32_t currenttime){
 
 void tachometerwRightInt(uint32_t currenttime){
   static uint32_t Tachometer_PrevTime = 0;
+  if ((currenttime - Tachometer_PrevTime) < 8000) return;
   if (PCNT2->STATUS & PCNT_STATUS_DIR) {
       TachRight.Dir = REVERSE;
   } else {
@@ -134,16 +136,17 @@ void tachometer_init() {
   WTIMER0->TOP  = 0xFFFFFFFFul;
 
   WTIMER0->CC[0].CTRL = WTIMER_CC_CTRL_MODE_INPUTCAPTURE | WTIMER_CC_CTRL_INSEL_PRS | WTIMER_CC_PRSSEL_PRSCH(TACH_PRS_CH) |
-                        WTIMER_CC_CTRL_FILT_DISABLE | WTIMER_CC_CTRL_ICEDGE_RISING; // Encoder Right PD3
+                        WTIMER_CC_CTRL_FILT_DISABLE | WTIMER_CC_CTRL_ICEDGE_RISING; // Encoder Right PD1 over PRS
   WTIMER0->CC[1].CTRL = WTIMER_CC_CTRL_MODE_INPUTCAPTURE | WTIMER_CC_CTRL_INSEL_PIN |
                         WTIMER_CC_CTRL_FILT_DISABLE | WTIMER_CC_CTRL_ICEDGE_RISING; // encoder Left PB4
   WTIMER0->ROUTELOC0  = WTIMER_ROUTELOC0_CC1LOC_LOC6;
   WTIMER0->ROUTEPEN   = WTIMER_ROUTEPEN_CC1PEN;
 
-  WTIMER0->IEN = WTIMER_IEN_CC0 | WTIMER_IEN_CC1;
+  WTIMER0->IEN = WTIMER_IEN_CC1 | WTIMER_IEN_CC0;
 
-  NVIC_SetPriority(WTIMER0_IRQn, TIMER0_IRQ_PRI);
+  NVIC_SetPriority(WTIMER0_IRQn, WTIMER0_IRQ_PRI);
   NVIC_EnableIRQ(WTIMER0_IRQn);
+
   WTIMER0->CMD = WTIMER_CMD_START;
 }
 

@@ -218,8 +218,8 @@ void update_display(void) {
     BUS_RegBitWrite(&GPIO->P[gpioPortA].DOUT, 5, lcdcommand);
 //    tx_descriptor[3].wri.immVal = launchpad_LED_state | (lcdcommand << 5)|(1 << 4)|(1 << 3)| (0 << 8) | (1 << 15);
 //    tx_descriptor[8].wri.immVal = launchpad_LED_state | (lcddata    << 5)|(1 << 4)|(1 << 3)| (0 << 8) | (1 << 15);
-    tx_descriptor[4].xfer.doneIfs = 0;
-    tx_descriptor[9].xfer.doneIfs = 0;
+    tx_descriptor[3].xfer.doneIfs = 0;
+    tx_descriptor[8].xfer.doneIfs = 0;
     LDMA_StartTransfer(LDMA_USART_OLED_CHANNEL, &txferCfg, (void*)&tx_descriptor);
 
 #endif

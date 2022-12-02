@@ -13,20 +13,32 @@
 #define PCA
 #define DATALOG
 
-#define CPU_FREQ    (50)
+#define CPU_FREQ    (50000000LL)
 
 // Период опроса фотосенсоров
 #define REFL_PERIOD   (2500)
 #define FRAMESCANPERSECOND     (1000000/REFL_PERIOD)
+
 // Ширина колеи робота для вычисления поворотов
-#define TRACK_WIDE    (143)
+#define TRACK_WIDE      (143L)
+
+// 220mm per 720 tick of two wheels.
+// 220 mm  ~ 1440  / 20
+//      11 ~ 72
+#define STEPS_TO_MM(X)    ((X) * 11L / 72)
+#define MM_TO_STEPS(X)    ((X) * 72L / 11)
+// 143mm wide * PI => 449 mm length / 220mm wheel step and multiply 720 pulse = 1470 pulse
+#define DEGREE_TO_STEPS(X) ((TRACK_WIDE*314L*72L*(X)+(11L*360*100/2))/(11L*360*100))
+
 
 // TIMER1 - Motor PWM
 // TIMER2 - Reflectance sensor Light on/off, ADC start
 
 // PCNT1   - Quadrature Encoder Left
+// PCNT2   - Quadrature Encoder Right
+
 // WTIMER0 - Tacho Period
-// WTIMER1 - Quadrature Encoder Right
+// WTIMER1 - Free: was Quadrature Encoder Right
 
 // LE_TIMER0 - Time delay
 
@@ -55,7 +67,7 @@
 // IRQ priorities:
 #define SysTick_IRQ_Priority  2
 #define I2C_IRQ_PRI           2
-#define TIMER0_IRQ_PRI        3
+#define WTIMER0_IRQ_PRI        3
 #define TIMER1_IRQ_PRI        3
 #define USART0_IRQ_PRI        4
 #define USART3_TX_IRQ_PRI     4

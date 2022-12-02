@@ -139,7 +139,7 @@ void Motor_Left(uint16_t leftDuty, uint16_t rightDuty);
 void Motor_Backward(uint16_t leftDuty, uint16_t rightDuty);
 
 void Motor_PWM (int16_t left, int16_t right);
-void Motor_Speed (int16_t left, int16_t right);
+void Motor_Speed (int left, int right);
 void Motor_Enable(void);
 void Motor_Disable(void);
 void TestMotor(void);

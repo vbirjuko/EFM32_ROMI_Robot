@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "resources.h"
 #ifdef SSD1306
-#include "Adafruit_SSD1306.h"
+#include <Adafruit_SSD1306.h>
 #define LCDHEIGHT SSD1306_LCDHEIGHT
 #define LCDWIDTH  SSD1306_LCDWIDTH
 #elif defined(SH1106)

@@ -2,7 +2,7 @@
 #include "resources.h"
 
 #ifdef SSD1306
-#include "Adafruit_SSD1306.h"
+#include <Adafruit_SSD1306.h>
 #elif defined SH1106
 #include "Adafruit_SH1106.h"
 #endif
@@ -23,6 +23,7 @@
 #endif
 static unsigned char videobuffer[ROWS*16];
 static const  unsigned int base[] = {0, 1, 10, 100, 1000, 10000}, *divider;
+const char hextable[16] = "0123456789ABCDEF";
 
 typedef enum {select_mode, edit_mode} mode_t;
 typedef void (*func_ptr)(void);
