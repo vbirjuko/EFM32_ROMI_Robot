@@ -13,11 +13,10 @@ include:
 - path: ''
   file_list:
   - {path: app.h}
-sdk: {id: gecko_sdk, version: 4.1.3}
+sdk: {id: gecko_sdk, version: 4.1.0}
 toolchain_settings: []
 component:
 - {id: cmsis_dsp}
-- {id: emlib_i2c}
 - {id: brd2207a}
 - {id: emlib_ldma}
 - {id: sl_system}

@@ -23,13 +23,12 @@
 #endif
 
 
-#define COMMAND_FACTOR  7
+#define COMMAND_QUEUE_FACTOR  7
 #define MINRPM  (1600)
 
 // 220mm per 360 tick of two wheels.
-#define CURRENT_DISTANCE  (((int32_t)LeftSteps + (int32_t)RightSteps) * 11L / (2*36))
-// 143mm wide ~ 449 mm length / 220mm wheel step and multiply 720 pulse = 1470 pulse
-#define DEGREE(x)  ((x*49L)/6)
+//#define CURRENT_DISTANCE  (((int32_t)LeftSteps + (int32_t)RightSteps) * 11L / (2*36))
+#define CURRENT_DISTANCE    (STEPS_TO_MM((int32_t)LeftSteps + (int32_t)RightSteps))
 
 int speed = 0;
 int slowdistance, startdistance, guarddistance, wait_counter;
@@ -38,8 +37,7 @@ int slowdistance, startdistance, guarddistance, wait_counter;
 volatile unsigned int segment_length, node_configuration, real_direction = north, profiler_data_ready = 0,
     profiler_queue_empty = 1, profiler_error_code = no_profiler_error;
 
-
-volatile unsigned int command_queue[1ul << COMMAND_FACTOR], command_read_idx = 126, command_write_idx = 126;
+volatile unsigned int command_queue[1ul << COMMAND_QUEUE_FACTOR], command_read_idx = 126, command_write_idx = 126;
 volatile unsigned int block_command_read = 0;
 
 void block_profiler(unsigned int state) {
@@ -50,7 +48,7 @@ unsigned int get_command(void) {
   unsigned int result;
   if (command_read_idx == command_write_idx) return command_eof;
   result = command_queue[command_read_idx++];
-  command_read_idx &= (1ul << COMMAND_FACTOR) - 1;
+  command_read_idx &= (1ul << COMMAND_QUEUE_FACTOR) - 1;
   return result;
 }
 
@@ -61,16 +59,16 @@ unsigned int read_command(unsigned int ahead) {
       if (new_idx == command_write_idx) return command_eof;
       result = command_queue[new_idx];
       ++new_idx;
-      new_idx &= ((1ul << COMMAND_FACTOR) - 1);
+      new_idx &= ((1ul << COMMAND_QUEUE_FACTOR) - 1);
   }
   return result;
 }
 
 unsigned int put_command(unsigned int command_data) {
-  if (((command_write_idx + 1) & ((1ul << COMMAND_FACTOR) - 1)) == command_read_idx) return 1;
+  if (((command_write_idx + 1) & ((1ul << COMMAND_QUEUE_FACTOR) - 1)) == command_read_idx) return 1;
   command_queue[command_write_idx] = command_data;
   __disable_irq();
-  command_write_idx = (command_write_idx + 1) & ((1ul << COMMAND_FACTOR) - 1);
+  command_write_idx = (command_write_idx + 1) & ((1ul << COMMAND_QUEUE_FACTOR) - 1);
   __enable_irq();
   return 0;
 }
@@ -171,11 +169,11 @@ unsigned int run_segment(void) {
       left_speed = speed+(result*speed)/8192; // speed*(1+result/nom_speed)
       right_speed = speed-(result*speed)/8192;
 
-      if (left_speed > data.maxmotor) left_speed = data.maxmotor;
-      else if (left_speed < -data.maxmotor) left_speed = -data.maxmotor;
-
-      if (right_speed > data.maxmotor) right_speed = data.maxmotor;
-      else if (right_speed < -data.maxmotor) right_speed = -data.maxmotor;
+//      if (left_speed > data.maxmotor) left_speed = data.maxmotor;
+//      else if (left_speed < -data.maxmotor) left_speed = -data.maxmotor;
+//
+//      if (right_speed > data.maxmotor) right_speed = data.maxmotor;
+//      else if (right_speed < -data.maxmotor) right_speed = -data.maxmotor;
 
       Motor_Speed(left_speed, right_speed);
 
@@ -361,11 +359,11 @@ int stop_difference, fail_difference, slow_difference;
   return 0;
 
 unsigned int make_turn_left(void) {  // Turn left
-    MAKE_TURN((RightSteps - LeftSteps), (4), -speed, speed)
+    MAKE_TURN(((int32_t)RightSteps - (int32_t)LeftSteps), (3), -speed, speed)
 }
 
 unsigned int make_turn_right(void) {  // Turn right.
-    MAKE_TURN((LeftSteps - RightSteps), (3), speed, -speed)
+    MAKE_TURN(((int32_t)LeftSteps - (int32_t)RightSteps), (4), speed, -speed)
 }
 
 typedef enum {
@@ -385,8 +383,7 @@ void profiler(void) {
   unsigned int command, command_param, total_length, ii, cmd_status;
   int brakepath1, brakepath2;
 
-  switch (state) {
-    case idle:
+  if (state == idle) {
       if (block_command_read) return;
       command  = get_command();
       command_param = command & ~COMMAND_MASK;
@@ -399,12 +396,12 @@ void profiler(void) {
         case command_wait:
           wait_counter = command_param;
           state = wait_still;
-          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать сразу
+//          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать сразу
           break;
 
-        // движение прямо по сегменту. В младших битах длина сегмента для расчета разгона и торможения
-        // разделяется на 3 фазы: движение по прямой линии, иссзледование узла и выравнивание ЦТ над узлом.
-        // так же проверяются следующие команды и если они тоже движение прямо разгон и торможение расчитываются
+        // движение прямо по сегменту. В младших битах длина сегмента для расчета разгона и торможения.
+        // разделяется на 3 фазы: движение по прямой линии, исследование узла и выравнивание ЦТ над узлом.
+        // так же проверяются следующие команды и если они тоже движение прямо, разгон и торможение расчитываются
         // с учетом последующих сегментов и тогда на промежуточных узлах выравнивание не выполняется.
         case command_forward:
           state = segment_run;
@@ -412,17 +409,18 @@ void profiler(void) {
           total_length = command_param;
           if (total_length) {
               ii = 1;
-              while (((command = read_command(ii++)) & COMMAND_MASK) == command_forward) {
+              while ((((command = read_command(ii++)) & COMMAND_MASK) == command_forward) ||
+                      ((command & COMMAND_MASK) == command_finish)) {
                   total_length += (command & ~COMMAND_MASK);
               }
           }
           if (speed == 0) startdistance = CURRENT_DISTANCE;
           // Расстояние, необходимое для торможения, если максимальная скорость не набирается:
           // (220mm/100)^2 * (V^2 - v^2) / (4 * a * 400*60)  + distance/2
-          brakepath1 = (speed*speed - data.minspeed*data.minspeed)/data.acceleration * 121/2400000 + total_length/2;
+          brakepath1 = (long long)(speed + data.minspeed)*(speed - data.minspeed) * 121/data.acceleration/2400000 + total_length/2;
           // Расстояние, необходимое для торможения от максимальной скорости:
           // (220mm/100)^2 * (V^2 - v^2) / (2 * a * 400*60)
-          brakepath2 = (data.maxspeed*data.maxspeed - data.minspeed*data.minspeed)/data.acceleration*121/1200000;
+          brakepath2 = (long long)(data.maxspeed + data.minspeed)*(data.maxspeed - data.minspeed) * 121/data.acceleration/1200000;
           // используем вариант с самым коротким тормозным путём
           if ((brakepath1 < brakepath2) && (brakepath1 >= 0)) {
               slowdistance = startdistance + total_length - data.sensor_offset - brakepath1;
@@ -431,7 +429,7 @@ void profiler(void) {
           }
           guarddistance = startdistance + data.guarddist;
 
-          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать двигаться сразу
+//          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать двигаться сразу
           break;
 
 
@@ -449,22 +447,38 @@ void profiler(void) {
           } else {
               degree = 90;
           }
+
+          reset_steps();
           Motor_Enable();
+
+          stop_difference = ((degree == 180) ? DEGREE_TO_STEPS(135) : DEGREE_TO_STEPS(45));
+          fail_difference = ((degree == 180) ? DEGREE_TO_STEPS(270) : DEGREE_TO_STEPS(135));
+//          slow_difference = ((degree == 180) ? DEGREE(120) : DEGREE(60));
+          {
+              int circle_length = (degree == 180) ? ((180 * TRACK_WIDE * 314)+(100*360/2)) / (100 * 360) : ((90 * TRACK_WIDE * 314)+(100*360/2)) / (100 * 360);
+              int brakepath = (long long)data.maxmotor*data.maxmotor * 121/data.acceleration/1200000;
+              if ((brakepath * 2) > circle_length) {
+                  slow_difference = MM_TO_STEPS(circle_length/2);
+              } else {
+                  slow_difference = MM_TO_STEPS(circle_length - brakepath);
+              }
+          }
+
           switch (turn_dir) {
             case left:      // turn left
               last_turn = left;
               state = turn_left;
-              stop_difference = (RightSteps - LeftSteps) + ((degree == 180) ? DEGREE(135) : DEGREE(45));
-              slow_difference = (RightSteps - LeftSteps) + ((degree == 180) ? DEGREE(120) : DEGREE(60));
-              fail_difference = (RightSteps - LeftSteps) + ((degree == 180) ? DEGREE(270) : DEGREE(135));
+              stop_difference += ((int32_t)RightSteps - (int32_t)LeftSteps);
+              slow_difference += ((int32_t)RightSteps - (int32_t)LeftSteps);
+              fail_difference += ((int32_t)RightSteps - (int32_t)LeftSteps);
               break;
 
             case right:
               last_turn = right;
               state = turn_right;
-              stop_difference = (LeftSteps - RightSteps) + ((degree == 180) ? DEGREE(135) : DEGREE(45));
-              slow_difference = (LeftSteps - RightSteps) + ((degree == 180) ? DEGREE(120) : DEGREE(60));
-              fail_difference = (LeftSteps - RightSteps) + ((degree == 180) ? DEGREE(270) : DEGREE(135));
+              stop_difference += ((int32_t)LeftSteps - (int32_t)RightSteps);
+              slow_difference += ((int32_t)LeftSteps - (int32_t)RightSteps);
+              fail_difference += ((int32_t)LeftSteps - (int32_t)RightSteps);
               break;
 
             default:
@@ -472,7 +486,7 @@ void profiler(void) {
               drop_command_queue();
               state = idle;
           }
-          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать двигаться сразу
+//          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать двигаться сразу
           break;
 
         case command_entrance:
@@ -491,15 +505,18 @@ void profiler(void) {
           // используем вариант с самым коротким тормозным путём
           slowdistance = startdistance + total_length - data.sensor_offset - brakepath1;
           guarddistance = startdistance + command_param; //   15см защитный интервал
-          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать двигаться сразу
+//          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать двигаться сразу
           break;
 
         // Проезжаем на 10 см вперед на скорости data.turnspeed, чтобы встать на финишное поле.
         case command_finish:
           state = blind_run;
           Motor_Enable();
-          guarddistance = CURRENT_DISTANCE + 100;
-          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать двигаться сразу
+          if (speed == 0) startdistance = CURRENT_DISTANCE;
+          guarddistance = (command & ~COMMAND_MASK);
+          if (guarddistance == 0) guarddistance = 100;
+          guarddistance += startdistance;
+//          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать двигаться сразу
           break;
 
         case command_back:
@@ -507,7 +524,7 @@ void profiler(void) {
           Motor_Enable();
           guarddistance = CURRENT_DISTANCE - command_param;
           slowdistance  = CURRENT_DISTANCE - command_param/2;
-          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
+//          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
           break;
 
         default:
@@ -515,9 +532,10 @@ void profiler(void) {
           drop_command_queue();
           break;
       }
-      break;
+//      break;
       // конец интерпретации команд.
-
+  }
+  switch (state) {
     // Состояния профайлера. switch (state) продолжение
     case segment_run:
       if (run_segment()) {
@@ -528,10 +546,12 @@ void profiler(void) {
 
     case check:
       if (check_node()) {
-          if ((read_command(1) & COMMAND_MASK) != command_forward) {
-              state = blind_run;
-          } else {
+          unsigned int next_command = read_command(1) & COMMAND_MASK;
+          if ((next_command == command_forward) ||
+              (next_command == command_finish)) {
               state = idle; // читаем следующую команду
+          } else {
+              state = blind_run;
           }
       }
       break;
@@ -603,9 +623,11 @@ void profiler(void) {
       break;
 
     default:
-      state = idle;
-      profiler_error_code = profiler_error_state_err;
-      drop_command_queue();
+      if (state != idle) {
+        state = idle;
+        profiler_error_code = profiler_error_state_err;
+        drop_command_queue();
+      }
   }
 }
 

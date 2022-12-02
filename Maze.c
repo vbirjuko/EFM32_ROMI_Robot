@@ -17,7 +17,7 @@
 #include "math.h"
 #include "resources.h"
 
-#define MAX_PATH_LENGTH (sizeof(data.path)/sizeof(data.path[0]))
+#define MAX_PATH_LENGTH (sizeof(data.length)/sizeof(data.length[0]))
 rotation_dir_t path[MAX_PATH_LENGTH];
 int length[MAX_PATH_LENGTH];
 
@@ -399,6 +399,15 @@ unsigned int solveMaze(void) {
                       put_command(command_wait | 2 * FRAMESCANPERSECOND);
                       if (data.cell_step) put_command(command_entrance | data.cell_step);
                       else                put_command(command_entrance | 150);
+
+//                      // И сохраним промежуточную карту? нет,нельзя - может еще пишется журнал
+//                      data.map_size = max_map_cell;
+//                      spi_write_eeprom(ROM_map_addr, (uint8_t *)&map, sizeof(map));
+//                      Search_Short_Way_with_turns();
+//                      data.crc32 = calc_crc32((uint8_t*)&data, sizeof(data)-4);
+//                      spi_write_eeprom(EEPROM_COPY_ADDRESS, (uint8_t *)&data, sizeof(data));
+//                      spi_write_eeprom(EEPROM_CONFIG_ADDRESS, (uint8_t *)&data, sizeof(data));
+
                   }
                   pathsequence++;
               }
@@ -519,14 +528,14 @@ int TimeToRunStraight(int distance) {  // in milliseconds from millimeters.
   else return 1;
 }
 
-#define TURN_LENGTH  ((TRACK_WIDE * 314 + 200) / 400)
+#define TURNCOST  ((TRACK_WIDE * 314 + 200) / 400)
 
 void InitBrakePath(void) {
   // Расстояние, необходимое для торможения от максимальной скорости:
   // (220mm/100)^2 * (V^2 - v^2) / (2 * a * 400*60)
   brakepath = (data.maxmotor*data.maxmotor)/data.acceleration*121/1200000;
   // turn length: 143mm wide * Pi / 4 = 112mm - each wheel run to turn 90 degree.
-  data.turncost = TimeToRunStraight(TURN_LENGTH);
+  data.turncost = TimeToRunStraight(TURNCOST);
 }
 
 unsigned int Search_Short_Way_with_turns(void) {
@@ -688,7 +697,7 @@ unsigned int search_way_simple(unsigned int start, unsigned int finish, bearing_
           }
       }
 
-      distance = TURN_LENGTH;
+      distance = TURNCOST;
       destination = min_index ^ 0x01;
       if (path_length_table[destination] > (path_length_table[min_index] + distance)) {
           path_length_table[destination] = path_length_table[min_index] + distance;
@@ -729,7 +738,7 @@ unsigned int search_way_simple(unsigned int start, unsigned int finish, bearing_
                   }
               }
           } else {
-              if ((path_length_table[min_index] - TURN_LENGTH) == (path_length_table[min_index ^ 0x01])) {
+              if ((path_length_table[min_index] - TURNCOST) == (path_length_table[min_index ^ 0x01])) {
                   min_index = min_index ^ 0x01;
                   break;
               }

@@ -8,6 +8,7 @@
 #include "display.h"
 #include "resources.h"
 #include "Logging.h"
+#include "Motor.h"
 
 #define ENABLE_PORT           gpioPortB
 #define ENABLE_LEFT_PIN            (12)
@@ -20,7 +21,7 @@
 #define SLEEP_PIN                   (4)
 
 // 50 000 000 / 4 * 60 * 100 / 360
-#define T_CONSTANT  (CPU_FREQ * 25000000 / 6)
+#define T_CONSTANT  (CPU_FREQ * 25 / 6)
 
 void Motor_PWM (int16_t left, int16_t right) {
     if (left < 0) {
@@ -146,7 +147,7 @@ void TIMER1_IRQHandler(void){
     }
 }
 
-void Motor_Speed(int16_t left, int16_t right) {
+void Motor_Speed(int left, int right) {
   __disable_irq();
   XstartL = left;
 	XstartR = right;

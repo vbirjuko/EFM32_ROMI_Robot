@@ -36,6 +36,7 @@ volatile uint32_t EventCountLeft = 0, EventCountRight = 0;
 
 void tachometerwLeftInt(uint32_t currenttime){
   static uint32_t Tachometer_PrevTime = 0;
+  if ((currenttime - Tachometer_PrevTime) < 8000) return;
   if (PCNT1->STATUS & PCNT_STATUS_DIR) {
       TachLeft.Dir = REVERSE;
   } else {
@@ -64,6 +65,7 @@ void tachometerwLeftInt(uint32_t currenttime){
 
 void tachometerwRightInt(uint32_t currenttime){
   static uint32_t Tachometer_PrevTime = 0;
+  if ((currenttime - Tachometer_PrevTime) < 8000) return;
   if (PCNT2->STATUS & PCNT_STATUS_DIR) {
       TachRight.Dir = REVERSE;
   } else {
@@ -134,17 +136,33 @@ void tachometer_init() {
   WTIMER0->TOP  = 0xFFFFFFFFul;
 
   WTIMER0->CC[0].CTRL = WTIMER_CC_CTRL_MODE_INPUTCAPTURE | WTIMER_CC_CTRL_INSEL_PRS | WTIMER_CC_PRSSEL_PRSCH(TACH_PRS_CH) |
-                        WTIMER_CC_CTRL_FILT_DISABLE | WTIMER_CC_CTRL_ICEDGE_RISING; // Encoder Right PD3
+                        WTIMER_CC_CTRL_FILT_DISABLE | WTIMER_CC_CTRL_ICEDGE_RISING; // Encoder Right PD1 over PRS
   WTIMER0->CC[1].CTRL = WTIMER_CC_CTRL_MODE_INPUTCAPTURE | WTIMER_CC_CTRL_INSEL_PIN |
                         WTIMER_CC_CTRL_FILT_DISABLE | WTIMER_CC_CTRL_ICEDGE_RISING; // encoder Left PB4
   WTIMER0->ROUTELOC0  = WTIMER_ROUTELOC0_CC1LOC_LOC6;
   WTIMER0->ROUTEPEN   = WTIMER_ROUTEPEN_CC1PEN;
 
-  WTIMER0->IEN = WTIMER_IEN_CC0 | WTIMER_IEN_CC1;
+  WTIMER0->IEN = WTIMER_IEN_CC1 | WTIMER_IEN_CC0;
 
-  NVIC_SetPriority(WTIMER0_IRQn, TIMER0_IRQ_PRI);
+//  // Таймер для измерения периода импульсов
+//  WTIMER1->CTRL = WTIMER_CTRL_MODE_UP | WTIMER_CTRL_DISSYNCOUT | WTIMER_CTRL_PRESC_DIV4; // 1 tick = 80ns
+//  WTIMER1->TOP  = 0xFFFFFFFFul;
+//
+//  WTIMER1->CC[3].CTRL = WTIMER_CC_CTRL_MODE_INPUTCAPTURE | WTIMER_CC_CTRL_INSEL_PIN |
+//                        WTIMER_CC_CTRL_FILT_DISABLE | WTIMER_CC_CTRL_ICEDGE_RISING; // encoder right PD1
+//  WTIMER1->ROUTELOC0  = WTIMER_ROUTELOC0_CC3LOC_LOC0;
+//  WTIMER1->ROUTEPEN   = WTIMER_ROUTEPEN_CC3PEN;
+//
+//  WTIMER1->IEN = WTIMER_IEN_CC3;
+
+  NVIC_SetPriority(WTIMER0_IRQn, WTIMER0_IRQ_PRI);
   NVIC_EnableIRQ(WTIMER0_IRQn);
+
+//  NVIC_SetPriority(WTIMER1_IRQn, WTIMER0_IRQ_PRI);
+//  NVIC_EnableIRQ(WTIMER1_IRQn);
+
   WTIMER0->CMD = WTIMER_CMD_START;
+//  WTIMER1->CMD = WTIMER_CMD_START;
 }
 
 void WTIMER0_IRQHandler(void) {
@@ -157,6 +175,13 @@ void WTIMER0_IRQHandler(void) {
       tachometerwLeftInt(WTIMER0->CC[1].CCV);
   }
 }
+
+//void WTIMER1_IRQHandler(void) {
+//  if (WTIMER1->IF & WTIMER_IF_CC3) {
+//      WTIMER1->IFC = WTIMER_IFC_CC3;
+//      tachometerwRightInt(WTIMER1->CC[3].CCV);
+//  }
+//}
 
 // ------------Tachometer_Get------------
 // Get the most recent tachometer measurements.

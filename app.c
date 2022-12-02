@@ -62,7 +62,7 @@ void app_init(void)
   if (crc_err) LaunchPad_LED(1);
 
   spi_read_eeprom(ROM_map_addr, (unsigned char *)&map, sizeof(map));
-  SysTick_Init(CPU_FREQ*1000000u/SCANPERSECOND, SysTick_IRQ_Priority);
+  SysTick_Init(CPU_FREQ/SCANPERSECOND, SysTick_IRQ_Priority);
   kbd_init();
   UART0_Init();
   tachometer_init();

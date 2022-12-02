@@ -37,7 +37,7 @@ typedef struct {
     int low_battery_level;
     int ignore_coordinate_error;
     int turncost;
-    int crosscost;    // obsolete
+    int crosscost;    // obsolete переделать на односвязный/многосвязный лабиринт
     int green_cell_nr;
     int volt_calibr;
     int stepcost;
@@ -66,6 +66,10 @@ unsigned int do_menu(menuitem_t* item, unsigned int last_menu_item);
 #define EEPROM_COPY_ADDRESS   0x7F000
 #define EEPROM_CONFIG_ADDRESS 0x00000
 #define ROM_map_addr          0x10000
+
+//#if EEPROM_CONFIG_ADDRESS + sizeof(eedata_t)) gt ROM_map_addr
+//#error "Memory overlap"
+//#endif
 
 // Должно быть кратно 64k
 #define LOG_ADDRESS           0x20000

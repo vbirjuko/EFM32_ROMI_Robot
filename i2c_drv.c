@@ -51,7 +51,7 @@ void i2c_master_init(void) {
 #endif
   // Конфигурируем EUSCI
 
-#if CPU_FREQ != 50
+#if CPU_FREQ != 50000000
 #warning Recalculate divider
 #endif
   I2C_DEV->CTRL = I2C_CTRL_GIBITO | I2C_CTRL_BITO_40PCC; // | I2C_CTRL_AUTOSN;

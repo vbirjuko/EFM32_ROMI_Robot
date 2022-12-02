@@ -391,4 +391,3 @@ const char ASCIITAB[][8] = {
     //  ,{0x1f, 0x24, 0x7c, 0x24, 0x1f} // 7f UT sign
     };
 
-    const char hextable[16] = "0123456789ABCDEF";
