@@ -54,8 +54,12 @@ void lcdwrite(unsigned char* data_ptr, unsigned int count, lcddatacommand dc){
   LDMA_StartTransfer(LDMA_USART_OLED_CHANNEL, &OLED_txferCfg, (void *)&OLED_tx_descriptor);
 }
 
+#include "keyboard.h"
+#include "i2c_drv.h"
+
 void spi_oled_init(void) {
-  volatile unsigned int delay;
+  uint8_t reset_state = 0;
+
     CMU_ClockEnable(cmuClock_USART3, 1);
     USART3->CTRL = USART_CTRL_SYNC | USART_CTRL_AUTOCS | USART_CTRL_CLKPOL_IDLELOW | USART_CTRL_MSBF ;
     USART3->CLKDIV = (CPU_FREQ/1000000) << _USART_CLKDIV_DIV_SHIFT;  // 1 MBit transfer rate
@@ -66,7 +70,7 @@ void spi_oled_init(void) {
     USART3->IEN = USART_IEN_TXC;
 
     GPIO_PinModeSet(gpioPortA, 5, gpioModePushPull, 0); // D/C
-    GPIO_PinModeSet(gpioPortA, 4, gpioModePushPull, 1); // RES
+//    GPIO_PinModeSet(gpioPortA, 4, gpioModePushPull, 1); // RES
     GPIO_PinModeSet(gpioPortE, 4, gpioModePushPull, 1); // CS EEPROM
     GPIO_PinModeSet(gpioPortA, 3, gpioModePushPull, 1); // CS OLED
     GPIO_PinModeSet(gpioPortA, 2, gpioModePushPull, 0);
@@ -74,11 +78,14 @@ void spi_oled_init(void) {
     GPIO_PinModeSet(gpioPortA, 0, gpioModePushPull, 0);
 
     // reset the LCD to a known state, RESET low
-    BUS_RegBitWrite((volatile uint32_t *)&GPIO->P[gpioPortA].DOUT,  4, 0);
-    delay = 10000000; // delay minimum 100 ns
-    while (delay--) continue;
-    BUS_RegBitWrite((volatile uint32_t *)&GPIO->P[gpioPortA].DOUT,  4, 1);
-
+//    BUS_RegBitWrite((volatile uint32_t *)&GPIO->P[gpioPortA].DOUT,  4, 0);
+    i2c_wr_reg(I2C_PCA_ADDR, output_port, &reset_state, sizeof(reset_state));
+//    delay = 10000000; // delay minimum 100 ns
+//    while (delay--) continue;
+    letimer_delay_ms(10);
+    reset_state = 1 << 3;
+//    BUS_RegBitWrite((volatile uint32_t *)&GPIO->P[gpioPortA].DOUT,  4, 1);
+    i2c_wr_reg(I2C_PCA_ADDR, output_port, &reset_state, sizeof(reset_state));
     // Enable LDMA clock
     CMU_ClockEnable(cmuClock_LDMA, true);
     LDMA_Init_t init = LDMA_INIT_DEFAULT;
@@ -336,16 +343,83 @@ void copy_data32_dma(uint32_t* source, uint32_t* dest, uint16_t count) {
   }
 }
 
+//void fill_data32_dma(uint32_t data, uint32_t* dest, uint16_t count) {
+//  static uint32_t source[1];
+//
+//  if ((count - 1) < 2048) {
+//      while (dma_flag) continue;
+//      LDMA_TransferCfg_t xferCfg = LDMA_TRANSFER_CFG_MEMORY();
+//      LDMA_Descriptor_t descriptor = LDMA_DESCRIPTOR_SINGLE_M2M_WORD(source, dest, count);
+//      source[0] = data;
+//      descriptor.xfer.srcInc = ldmaCtrlSrcIncNone;
+//      dma_flag = 1;
+//      LDMA_StartTransfer(LDMA_MEM2MEM_CHANNEL, &xferCfg, &descriptor);
+//  }
+//}
+
+LDMA_TransferCfg_t xferCfg;
+LDMA_Descriptor_t descriptor[2];
+
 void fill_data32_dma(uint32_t data, uint32_t* dest, uint16_t count) {
   static uint32_t source[1];
 
-  if ((count - 1) < 2048) {
-      while (dma_flag) continue;
-      LDMA_TransferCfg_t xferCfg = LDMA_TRANSFER_CFG_MEMORY();
-      LDMA_Descriptor_t descriptor = LDMA_DESCRIPTOR_SINGLE_M2M_WORD(source, dest, count);
-      source[0] = data;
-      descriptor.xfer.srcInc = ldmaCtrlSrcIncNone;
-      dma_flag = 1;
-      LDMA_StartTransfer(LDMA_MEM2MEM_CHANNEL, &xferCfg, &descriptor);
-  }
+    if ((count - 1) < 2048) {
+        while (dma_flag) continue;
+        xferCfg = (LDMA_TransferCfg_t) LDMA_TRANSFER_CFG_MEMORY();
+        descriptor[0] = (LDMA_Descriptor_t) LDMA_DESCRIPTOR_SINGLE_M2M_WORD(source, dest, count);
+        source[0] = data;
+        descriptor[0].xfer.srcInc = ldmaCtrlSrcIncNone;
+        dma_flag = 1;
+        LDMA_StartTransfer(LDMA_MEM2MEM_CHANNEL, &xferCfg, &descriptor[0]);
+    } else {
+        while (dma_flag) continue;
+        xferCfg = (LDMA_TransferCfg_t) LDMA_TRANSFER_CFG_MEMORY_LOOP((count / 2048)-1);
+        descriptor[0] = (LDMA_Descriptor_t) LDMA_DESCRIPTOR_LINKREL_M2M_WORD(source, dest, ((count-1) % 2048) + 1, 1);
+        descriptor[1] = (LDMA_Descriptor_t) LDMA_DESCRIPTOR_LINKREL_M2M_WORD(source,    0, 2048, 0);
+
+        source[0] = data;
+//        xferCfg.ldmaLoopCnt =  - 1;
+//        descriptor[0].xfer.xferCnt = (count-1) % 2048;
+        descriptor[0].xfer.srcInc = ldmaCtrlSrcIncNone;
+        descriptor[1].xfer.srcInc = ldmaCtrlSrcIncNone;
+        descriptor[1].xfer.dstAddrMode = ldmaCtrlDstAddrModeRel;
+        descriptor[1].xfer.decLoopCnt = 1;
+        descriptor[1].xfer.link = 0;          // Stop after looping
+        descriptor[1].xfer.doneIfs = 1;
+
+        dma_flag = 1;
+        LDMA_StartTransfer(LDMA_MEM2MEM_CHANNEL, &xferCfg, &descriptor[0]);
+    }
+}
+
+void fill_data16_dma(uint16_t data, uint16_t* dest, uint16_t count) {
+  static uint32_t source[1];
+
+    if ((count - 1) < 2048) {
+        while (dma_flag) continue;
+        xferCfg = (LDMA_TransferCfg_t) LDMA_TRANSFER_CFG_MEMORY();
+        descriptor[0] = (LDMA_Descriptor_t) LDMA_DESCRIPTOR_SINGLE_M2M_HALF(source, dest, count);
+        source[0] = data;
+        descriptor[0].xfer.srcInc = ldmaCtrlSrcIncNone;
+        dma_flag = 1;
+        LDMA_StartTransfer(LDMA_MEM2MEM_CHANNEL, &xferCfg, &descriptor[0]);
+    } else {
+        while (dma_flag) continue;
+        xferCfg = (LDMA_TransferCfg_t) LDMA_TRANSFER_CFG_MEMORY_LOOP((count / 2048)-1);
+        descriptor[0] = (LDMA_Descriptor_t) LDMA_DESCRIPTOR_LINKREL_M2M_HALF(source, dest, ((count-1) % 2048) + 1, 1),
+        descriptor[1] = (LDMA_Descriptor_t) LDMA_DESCRIPTOR_LINKREL_M2M_HALF(source,    0, 2048, 0);
+
+        source[0] = data;
+//        xferCfg.ldmaLoopCnt =  - 1;
+//        descriptor[0].xfer.xferCnt = (count-1) % 2048;
+        descriptor[0].xfer.srcInc = ldmaCtrlSrcIncNone;
+        descriptor[1].xfer.srcInc = ldmaCtrlSrcIncNone;
+        descriptor[1].xfer.dstAddrMode = ldmaCtrlDstAddrModeRel;
+        descriptor[1].xfer.decLoopCnt = 1;
+        descriptor[1].xfer.link = 0;          // Stop after looping
+        descriptor[1].xfer.doneIfs = 1;
+
+        dma_flag = 1;
+        LDMA_StartTransfer(LDMA_MEM2MEM_CHANNEL, &xferCfg, &descriptor[0]);
+    }
 }

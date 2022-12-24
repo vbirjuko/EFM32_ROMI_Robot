@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project name="uc.module.setup.componentSetup.Default.gcc" propertyScope="project">
-  <folder name="gecko_sdk_4.1.3">
+<project name="uc.module.setup.componentSetup.com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt.debug#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:10.3.1.20210824.gcc" propertyScope="project">
+  <folder name="gecko_sdk_4.2.0">
     <folder name="platform">
       <folder name="Device">
         <folder name="SiliconLabs">
@@ -194,6 +194,7 @@
           <file name="em_chip.h" uri="studio:/sdk/platform/emlib/inc/em_chip.h"/>
           <file name="em_cmu.h" uri="studio:/sdk/platform/emlib/inc/em_cmu.h"/>
           <file name="em_cmu_compat.h" uri="studio:/sdk/platform/emlib/inc/em_cmu_compat.h"/>
+          <file name="sli_em_cmu.h" uri="studio:/sdk/platform/emlib/inc/sli_em_cmu.h"/>
           <file name="em_assert.h" uri="studio:/sdk/platform/emlib/inc/em_assert.h"/>
           <file name="em_bus.h" uri="studio:/sdk/platform/emlib/inc/em_bus.h"/>
           <file name="em_common.h" uri="studio:/sdk/platform/emlib/inc/em_common.h"/>
@@ -254,10 +255,10 @@
       </folder>
     </folder>
   </folder>
-  <file name="app.c" linked="false" uri="file:/C:/Users/prg51/Documents/GitHub/EFM32_ROMI_Robot/app.c"/>
-  <file name="main.c" linked="false" uri="file:/C:/Users/prg51/Documents/GitHub/EFM32_ROMI_Robot/main.c"/>
-  <file name="app.h" linked="false" uri="file:/C:/Users/prg51/Documents/GitHub/EFM32_ROMI_Robot/app.h"/>
-  <includePath uri="file:/C:/Users/prg51/Documents/GitHub/EFM32_ROMI_Robot"/>
+  <file name="app.c" linked="false" uri="studio:/project/app.c"/>
+  <file name="main.c" linked="false" uri="studio:/project/main.c"/>
+  <file name="app.h" linked="false" uri="studio:/project/app.h"/>
+  <includePath uri="studio:/project/"/>
   <includePath uri="studio:/sdk/platform/Device/SiliconLabs/EFM32GG12B/Include"/>
   <includePath uri="studio:/sdk/hardware/board/inc"/>
   <includePath uri="studio:/sdk/platform/CMSIS/Core/Include"/>
@@ -369,18 +370,23 @@
     <toolListOption value="--specs=nano.specs"/>
     <toolListOption value="-g"/>
   </toolOption>
+  <toolOption toolId="makefile.host.gcc.compiler" optionId="misc">
+    <toolListOption value="--specs=nano.specs"/>
+  </toolOption>
+  <toolOption toolId="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base" optionId="com.silabs.gnu.c.compiler.option.misc.otherlist">
+    <toolListOption value="--specs=nano.specs"/>
+    <toolListOption value="-c"/>
+    <toolListOption value="-fmessage-length=0"/>
+  </toolOption>
+  <toolOption toolId="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base" optionId="com.silabs.gnu.cpp.compiler.option.misc.otherlist">
+    <toolListOption value="--specs=nano.specs"/>
+    <toolListOption value="-c"/>
+    <toolListOption value="-fmessage-length=0"/>
+  </toolOption>
   <toolOption toolId="makefile.arm.gcc.assembler" optionId="misc">
     <toolListOption value="-x assembler-with-cpp"/>
   </toolOption>
   <toolOption toolId="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.base" optionId="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.circulardependency" value="true"/>
   <toolOption toolId="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.base" optionId="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.nostdlibs" value="false"/>
   <toolOption toolId="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.linker" optionId="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.linker.circulardependency" value="true"/>
-  <toolOption toolId="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base" optionId="com.silabs.gnu.c.compiler.option.misc.otherlist">
-    <toolListOption value="-c"/>
-    <toolListOption value="-fmessage-length=0"/>
-  </toolOption>
-  <toolOption toolId="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base" optionId="com.silabs.gnu.cpp.compiler.option.misc.otherlist">
-    <toolListOption value="-c"/>
-    <toolListOption value="-fmessage-length=0"/>
-  </toolOption>
 </project>

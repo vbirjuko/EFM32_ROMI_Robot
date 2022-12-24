@@ -8,16 +8,20 @@
 #ifndef RESOURCES_H_
 #define RESOURCES_H_
 
-#define SSD1306
+#define SH1106
 #define OLED_SPI
 #define PCA
 #define DATALOG
+//#define DEBUG_MAZE
 
 #define CPU_FREQ    (50000000LL)
 
 // Период опроса фотосенсоров
 #define REFL_PERIOD   (2500)
 #define FRAMESCANPERSECOND     (1000000/REFL_PERIOD)
+
+// SCANPERSECOND задаёт все временные задержки, а так же частоту запуска АЦП.
+#define SCANPERSECOND 2000
 
 // Ширина колеи робота для вычисления поворотов
 #define TRACK_WIDE      (143L)
@@ -38,7 +42,7 @@
 // PCNT2   - Quadrature Encoder Right
 
 // WTIMER0 - Tacho Period
-// WTIMER1 - Free: was Quadrature Encoder Right
+// WTIMER1 - Benchmark counter
 
 // LE_TIMER0 - Time delay
 

@@ -7,9 +7,6 @@
 
 
 
-// SCANPERSECOND задаёт все временные задержки, а так же частоту запуска АЦП.
-#define SCANPERSECOND 2000
-
 #define I2C_PCA_ADDR	0x82
 enum pca_reg {
 	input_port = 0x00,

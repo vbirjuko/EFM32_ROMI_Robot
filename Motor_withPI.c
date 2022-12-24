@@ -17,11 +17,13 @@
 #define DIRECTION_PORT_RIGHT  gpioPortD
 #define DIRECTION_LEFT	            (3)
 #define DIRECTION_RIGHT	            (2)
+
 #define SLEEP_PORT            gpioPortD
 #define SLEEP_PIN                   (4)
 
-// 50 000 000 / 4 * 60 * 100 / 360
-#define T_CONSTANT  (CPU_FREQ * 25 / 6)
+// 50 000 000 / 4 * 60 * 100 / 360 = CPU_FREQ * 6000/(360*4) = CPU_FREQ * 25 / 6
+// И еще делим на 2 так как тахометр срабатывает и по фронту и по спаду.
+#define T_CONSTANT  (CPU_FREQ * 25 / 12)
 
 void Motor_PWM (int16_t left, int16_t right) {
     if (left < 0) {
@@ -107,6 +109,7 @@ void Motor_Init(void){
   GPIO_PinModeSet(DIRECTION_PORT_RIGHT, DIRECTION_RIGHT, gpioModePushPull, 0);
       // nSleep
   GPIO_PinModeSet(SLEEP_PORT, SLEEP_PIN, gpioModePushPull, 0);
+
       // PWM
   GPIO_PinModeSet(ENABLE_PORT, ENABLE_LEFT_PIN, gpioModePushPull, 0);
   GPIO_PinModeSet(ENABLE_PORT, ENABLE_RIGHT_PIN, gpioModePushPull, 0);
@@ -165,7 +168,7 @@ void Motor_Enable(void) {
 }
 
 void Motor_Disable(void) {
-	BUS_RegBitWrite(&GPIO->P[SLEEP_PORT].DOUT, SLEEP_PIN, 0);
+  BUS_RegBitWrite(&GPIO->P[SLEEP_PORT].DOUT, SLEEP_PIN, 0);
 }
 
 volatile unsigned int motor_delay = 0;

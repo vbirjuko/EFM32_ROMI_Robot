@@ -44,4 +44,33 @@ void ColorSensorTest(uint16_t * colors, unsigned int new);
 void ColorSensorTestHSI(uint16_t * colors, unsigned int new);
 
 void line_test (void);
+
+
+#define LDMA_DESCRIPTOR_LINKREL_M2P_BYTE_NOIRQ(src, dest, count, linkjmp)    \
+  {                                                                    \
+    .xfer =                                                            \
+    {                                                                  \
+      .structType   = ldmaCtrlStructTypeXfer,                          \
+      .structReq    = 0,                                               \
+      .xferCnt      = (count) - 1,                                     \
+      .byteSwap     = 0,                                               \
+      .blockSize    = ldmaCtrlBlockSizeUnit1,                          \
+      .doneIfs      = 0,                                               \
+      .reqMode      = ldmaCtrlReqModeBlock,                            \
+      .decLoopCnt   = 0,                                               \
+      .ignoreSrec   = 0,                                               \
+      .srcInc       = ldmaCtrlSrcIncOne,                               \
+      .size         = ldmaCtrlSizeByte,                                \
+      .dstInc       = ldmaCtrlDstIncNone,                              \
+      .srcAddrMode  = ldmaCtrlSrcAddrModeAbs,                          \
+      .dstAddrMode  = ldmaCtrlDstAddrModeAbs,                          \
+      .srcAddr      = (uint32_t)(src),                                 \
+      .dstAddr      = (uint32_t)(dest),                                \
+      .linkMode     = ldmaLinkModeRel,                                 \
+      .link         = 1,                                               \
+      .linkAddr     = (linkjmp) * LDMA_DESCRIPTOR_NON_EXTEND_SIZE_WORD \
+    }                                                                  \
+  }
+
+
 #endif

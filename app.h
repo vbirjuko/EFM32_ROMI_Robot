@@ -28,4 +28,6 @@ void app_init(void);
  ******************************************************************************/
 void app_process_action(void);
 
+extern volatile unsigned int sys_time;
+
 #endif  // APP_H

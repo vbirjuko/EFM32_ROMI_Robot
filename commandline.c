@@ -25,6 +25,7 @@
 #include "crc.h"
 #include "Motor.h"
 #include "Reflectance.h"
+#include "profiler.h"
 
 #define NULL ((void* )0 )
 #define UNUSED(x) (void) (x)
@@ -168,7 +169,7 @@ uint32_t dump_addlog(instance_t *instance, int * none) {
 
 uint32_t dump_log(instance_t *instance, int * none) {
     uint16_t log_buffer[128], *log_buffer_ptr;
-    int16_t coordX = 0, coordY = 0;
+//    int16_t coordX = 0, coordY = 0;
     unsigned int mask, timecode = 0, start_time = 0, end_time = 0xffffffff, segment = 0, eeprom_address, log_size, i, j;
     char timecode_str[10], *timecode_ptr;
 
@@ -243,31 +244,19 @@ uint32_t dump_log(instance_t *instance, int * none) {
                 if ((*log_buffer_ptr & 0xf000) == (log_turn)) instance->UART_OutString("Turn");
                 if ((*log_buffer_ptr & 0xf000) == (log_blind)) instance->UART_OutString("Blind");
                 if ((*log_buffer_ptr & 0xf000) == (log_wait)) instance->UART_OutString("Wait");
+                if ((*log_buffer_ptr & 0xf000) == (log_back)) instance->UART_OutString("Back");
+                if ((*log_buffer_ptr & 0xf000) == (log_finish)) instance->UART_OutString("Finish");
                 instance->UART_OutChar(0x0d);
                 instance->UART_OutChar(0x0a);
                 timecode += 25;
             } else {
-                if ((*log_buffer_ptr & 0xff00) == (coord_east_lsb << 8)) coordX = (coordX & 0xff00) | (*log_buffer_ptr & 0x00ff);
-                if ((*log_buffer_ptr & 0xff00) == (coord_east_msb << 8)) coordX = (coordX & 0x00ff) | ((*log_buffer_ptr & 0x00ff) << 8);
-                if ((*log_buffer_ptr & 0xff00) == (coord_north_lsb << 8)) coordY = (coordY & 0xff00) | (*log_buffer_ptr & 0x00ff);
-                if ((*log_buffer_ptr & 0xff00) == (coord_north_msb << 8)) coordY = (coordY & 0x00ff) | ((*log_buffer_ptr & 0x00ff) << 8);
-                if ((*log_buffer_ptr & 0xff00) == (segm_length_lsb << 8)) segment = (segment & 0xff00) | (*log_buffer_ptr & 0x00ff);
-                if ((*log_buffer_ptr & 0xff00) == (segm_length_msb << 8)) segment = (segment & 0x00ff) | ((*log_buffer_ptr & 0x00ff) << 8);
-                if ((*log_buffer_ptr & 0xff00) == (node_idx << 8)) {
+                if ((*log_buffer_ptr & 0xff00) == log_segment0) segment = (segment & 0xffffff00) | (*log_buffer_ptr & 0x000000ff);
+                if ((*log_buffer_ptr & 0xff00) == log_segment1) segment = (segment & 0xffff00ff) | ((*log_buffer_ptr & 0x000000ff) << 8);
+                if ((*log_buffer_ptr & 0xff00) == log_segment2) segment = (segment & 0xff00ffff) | ((*log_buffer_ptr & 0x000000ff) << 16);
+                if ((*log_buffer_ptr & 0xff00) == log_segment3) {
+                    segment = (segment & 0x00ffffff) | ((*log_buffer_ptr & 0x000000ff) << 24);
                     instance->UART_OutString("Segment Length = ");
                     instance->UART_OutUDec(segment);
-                    instance->UART_OutString("\r\nCurrent index = ");
-                    instance->UART_OutUDec(*log_buffer_ptr & 0x00FF);
-                    instance->UART_OutString(" , Coord X = ");
-                    if (coordX < 0) { instance->UART_OutChar('-'); instance->UART_OutUDec(-coordX); }
-                    else { instance->UART_OutUDec(coordX); }
-                    instance->UART_OutString(" , Coord Y = ");
-                    if (coordY < 0) { instance->UART_OutChar('-'); instance->UART_OutUDec(-coordY); }
-                    else { instance->UART_OutUDec(coordY); }
-                    instance->UART_OutChar(0x0d);
-                    instance->UART_OutChar(0x0a);
-                    segment = 0u;
-                    coordX = coordY = 0;
                 }
             }
         }
@@ -713,9 +702,12 @@ uint32_t dump_map(instance_t *instance, int * none)	{
 	int ii, jj;
 	
 	UNUSED(none);
-    spi_read_eeprom(ROM_map_addr, (uint8_t *)&map, sizeof(map));
+//    spi_read_eeprom(ROM_map_addr, (uint8_t *)&map, sizeof(map));
     ptr = (map_cell_t*) &map;
+    instance->UART_OutString("Index\tCoordX\tCoordY\tNorth\tEast\tSouth\tWest\r\n");
     for (ii=0; ii < data.map_size; ii++) {
+        instance->UART_OutUDec(ii);
+        instance->UART_OutChar('\t');
         if (ptr->coordinate.east < 0) {
             instance->UART_OutChar('-');
             instance->UART_OutUDec(-(ptr->coordinate.east));
@@ -836,6 +828,8 @@ const Cmd_t Table[]={
     {"Volt_calibr",     &put_on_stack, &data.volt_calibr},
     {"Bat_low_lvl",     &put_on_stack, &data.low_battery_level},
     {"Length_tab",      &put_on_stack,  data.length},
+    {"RedWall",         &put_on_stack, &data.red_wall},
+    {"GreenWall",       &put_on_stack, &data.green_wall},
     {"Watermark",       &put_on_stack, &data.log_watermark},
     {"motor_en",        &enable_motor,  NULL},
     {"motor_speed",     &speed_motor,   NULL},
@@ -851,6 +845,12 @@ const Cmd_t Table[]={
     {"show_path",       &show_path, NULL},
     {"time_to_run",     &time_to_run_straight, NULL},
     {"init_brkpth",     &init_brakepath, NULL},
+    {"Available",       &put_on_stack, (int *)&node_configuration},
+    {"Segment",         &put_on_stack, (int *)&segment_length},
+    {"DataReady",       &put_on_stack, (int *)&profiler_data_ready},
+    {"Left",            &put_on_stack, (int *)LEFT_MASK},
+    {"Right",           &put_on_stack, (int *)RIGHT_MASK},
+    {"Straight",        &put_on_stack, (int *)STRAIGHT_MASK},
     {"list",            &list_values, NULL},
     {"words",           &list_cmd, NULL},
 };

@@ -23,6 +23,6 @@
 //void TestTachom(void);
 //void TestBrake(void);
 void FreeRun(void);
-
+void opt_main2(void);
 
 #endif /* PLACEHOLDER_H_ */

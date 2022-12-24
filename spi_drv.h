@@ -35,7 +35,8 @@ extern volatile unsigned int tx_busy;
 extern volatile unsigned int dma_flag;
 void copy_data_dma(uint8_t* source, uint8_t* dest, uint16_t count);
 void copy_data32_dma(uint32_t* source, uint32_t* dest, uint16_t count);
-void   fill_data32_dma(uint32_t data, uint32_t* dest, uint16_t count);
+void fill_data32_dma(uint32_t data, uint32_t* dest, uint16_t count);
+void fill_data16_dma(uint16_t data, uint16_t* dest, uint16_t count);
 
 #include "display.h"
 

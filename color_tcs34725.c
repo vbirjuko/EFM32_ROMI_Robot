@@ -103,7 +103,7 @@ color_t check_color(void) {
   if (color_sensors[0] < data.color_threshold) {
       return black;
   } else {
-      unsigned int i, invsaturation, minRGB=0x10000;
+      unsigned int i, invsaturation, minRGB=0xFFFFFFFFul;
       int hueX, hueY;
       for (i=1; i<4; i++) {
           if (minRGB > color_sensors[i]) minRGB = color_sensors[i];
@@ -111,8 +111,8 @@ color_t check_color(void) {
       invsaturation = 3*1024 * minRGB / (color_sensors[1]+color_sensors[2]+color_sensors[3]);
       if ((int)invsaturation > data.color_saturation) return white;
 
-      hueX = 2*color_sensors[1] - color_sensors[2] - color_sensors[3];
       hueY = 3*(color_sensors[2] - color_sensors[3]);
+      hueX = 2*color_sensors[1] - color_sensors[2] - color_sensors[3];
 
 #define ABS(x)  (((x) < 0) ? (-(x)) : (x))
       if (ABS(hueX) > ABS(hueY)) {

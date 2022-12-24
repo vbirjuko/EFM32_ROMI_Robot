@@ -37,6 +37,7 @@
 #include "Maze.h"
 #include "rand.h"
 #include "inject_data.h"
+#include "benchmark.h"
 #include "placeholder.h"
 
 /***************************************************************************//**
@@ -50,11 +51,13 @@ void app_init(void)
   LaunchPad_Output(0);
   LaunchPad_Output1(0);
   le_timer_Init();
+  benchmark_init();
   i2c_master_init();
   if (color_sensor_init()) no_color_sensor = 1;
   spi_eeprom_init();
 //  oled_ssd1327_Init();
 //  while(1);
+  kbd_init();
   display_init();
   crc32_init();
   spi_read_eeprom(EEPROM_CONFIG_ADDRESS, (unsigned char *)&data, sizeof(data));
@@ -63,7 +66,6 @@ void app_init(void)
 
   spi_read_eeprom(ROM_map_addr, (unsigned char *)&map, sizeof(map));
   SysTick_Init(CPU_FREQ/SCANPERSECOND, SysTick_IRQ_Priority);
-  kbd_init();
   UART0_Init();
   tachometer_init();
   Motor_Init();
@@ -117,14 +119,14 @@ void app_process_action(void) {
       {"Color sens. test", TestColor,     execute},
       {"Motor test      ", TestMotor,     execute},
       {"Tachometer  test", TestTachom,    execute},
-      {"Free Run        ", FreeRun,       execute},
+      {"OPT3101 test    ", opt_main2,     execute},
   };
   do_menu((menuitem_t*) main_menu_items, ((sizeof(main_menu_items)/sizeof(main_menu_items[0]))-1));
 }
 
-
+volatile unsigned int sys_time = 0;
 void SysTick_Handler(void){ // every 1/2 ms
-//  time++;
+  sys_time++;
 //  color_iteration();
   if (kbddelay) kbddelay--;
   if (disp_delay) disp_delay--;

@@ -37,7 +37,7 @@ uint32_t LPF__Calc(LPF_t * instance, uint32_t newdata){
   }
   instance->Sum = instance->Sum+newdata-instance->x[instance->I1];   // subtract oldest, add newest
   instance->x[instance->I1] = newdata;     // save new data
-  LPF_battery.data_ready = 1;
+  instance->data_ready = 1;
   return instance->Sum/instance->Size;
 }
 

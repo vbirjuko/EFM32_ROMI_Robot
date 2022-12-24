@@ -14,7 +14,7 @@ typedef struct {
     int k_error;
     int k_diff;
     int k_integral;
-    int on_way;
+    int on_way;   // obsolete
     int timetorun;
     int lefthand;
     int runnumber;
@@ -44,8 +44,10 @@ typedef struct {
     int cell_step;
     int str_accel;
     int color_saturation;
-    uint8_t path[MAX_MAP_SIZE * 2];
+    uint8_t path[(MAX_MAP_SIZE * 2) - 8];
     int length[MAX_MAP_SIZE * 2];
+    int green_wall;
+    int red_wall;
     int log_watermark;
     int crc32;
 } eedata_t ;

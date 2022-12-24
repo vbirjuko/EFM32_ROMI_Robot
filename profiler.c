@@ -15,6 +15,12 @@
 #include "Maze.h"
 #include "configure.h"
 #include "Logging.h"
+#include "benchmark.h"
+#include "UART0.h"
+
+#ifdef DEBUG_MAZE
+#undef DATALOG
+#endif
 
 #ifdef DATALOG
 #define LOGGING(A)       data_log(A, 1)
@@ -24,7 +30,7 @@
 
 
 #define COMMAND_QUEUE_FACTOR  7
-#define MINRPM  (1600)
+#define MINRPM  (800)
 
 // 220mm per 360 tick of two wheels.
 //#define CURRENT_DISTANCE  (((int32_t)LeftSteps + (int32_t)RightSteps) * 11L / (2*36))
@@ -64,6 +70,8 @@ unsigned int read_command(unsigned int ahead) {
   return result;
 }
 
+#ifndef DEBUG_MAZE
+
 unsigned int put_command(unsigned int command_data) {
   if (((command_write_idx + 1) & ((1ul << COMMAND_QUEUE_FACTOR) - 1)) == command_read_idx) return 1;
   command_queue[command_write_idx] = command_data;
@@ -73,7 +81,76 @@ unsigned int put_command(unsigned int command_data) {
   return 0;
 }
 
+#else
 
+unsigned int put_command(unsigned int command_data) {
+  switch (command_data & COMMAND_MASK) {
+    case command_forward:
+      UART0_OutString("Forward: ");
+      UART0_OutUDec(command_data & ~COMMAND_MASK);
+      UART0_OutString("\r\n");
+      break;
+
+    case command_turn:
+      switch (command_data & ~COMMAND_MASK) {
+        case 1:
+          UART0_OutString("Turn Right\r\n");
+          break;
+        case 2:
+          UART0_OutString("Turn Back\r\n");
+          break;
+        case 3:
+          UART0_OutString("Turn Left\r\n");
+          break;
+        default:
+          UART0_OutString("Turn Error in parameter: ");
+          UART0_OutUDec(command_data & ~COMMAND_MASK);
+          UART0_OutString("\r\n");
+          break;
+      }
+      break;
+
+    case command_finish:
+      UART0_OutString("Finish ");
+      UART0_OutUDec(command_data & ~COMMAND_MASK);
+      UART0_OutString("\r\n");
+      break;
+
+    case command_entrance:
+      UART0_OutString("Entrance ");
+      UART0_OutUDec(command_data & ~COMMAND_MASK);
+      UART0_OutString("\r\n");
+      break;
+
+    case command_wait:
+      UART0_OutString("Wait ");
+      UART0_OutUDec(command_data & ~COMMAND_MASK);
+      UART0_OutString("\r\n");
+      break;
+
+    case command_back:
+      UART0_OutString("Back ");
+      UART0_OutUDec(command_data & ~COMMAND_MASK);
+      UART0_OutString("\r\n");
+      break;
+
+    case command_benchmark:
+      if (command_data & ~COMMAND_MASK) {
+          UART0_OutString("Benchmark start\r\n");
+      } else {
+          UART0_OutString("Benchmark stop\r\n");
+      }
+      break;
+
+    default:
+      UART0_OutString("Unknown command ");
+      UART0_OutUDec(command_data & ~COMMAND_MASK);
+      UART0_OutString("\r\n");
+      break;
+  }
+  return 0;
+}
+#endif
 
 void drop_command_queue(void) {
   command_read_idx = command_write_idx = 0;
@@ -210,6 +287,10 @@ unsigned int check_node(void) {
 
               node_configuration = available;
               //              segment_length = CURRENT_DISTANCE - startdistance + data.sensor_offset;
+              LOGGING(log_segment0 | ((segment_length >>  0) & 0xFF));
+              LOGGING(log_segment1 | ((segment_length >>  8) & 0xFF));
+              LOGGING(log_segment2 | ((segment_length >> 16) & 0xFF));
+              LOGGING(log_segment3 | ((segment_length >> 24) & 0xFF));
               profiler_data_ready = 1;
 
               delay = 0; blind = 0; available = 0;  // очистка перед следующим узлом.
@@ -238,6 +319,7 @@ unsigned int check_node(void) {
   return 0;
 }
 
+// Торможение после анализа перекрёстка до скорости turnspeed.
 unsigned int slowdown(void) {
 
   if (photo_data_ready) {
@@ -336,7 +418,7 @@ int stop_difference, fail_difference, slow_difference;
           if ((speed -= data.acceleration) < data.turnspeed) speed = data.turnspeed;\
       }                                                                         \
       if (speed < MINRPM) speed = MINRPM;                                       \
-\
+                                                                                \
       if ((photo_sensor & (1 << SENSOR)) ^ last_status) count++;                \
       last_status = photo_sensor & (1 << SENSOR);                               \
       if ((DIFF) > fail_difference) {                                           \
@@ -359,11 +441,11 @@ int stop_difference, fail_difference, slow_difference;
   return 0;
 
 unsigned int make_turn_left(void) {  // Turn left
-    MAKE_TURN(((int32_t)RightSteps - (int32_t)LeftSteps), (3), -speed, speed)
+    MAKE_TURN(((int32_t)RightSteps - (int32_t)LeftSteps), (4), -speed, speed)
 }
 
 unsigned int make_turn_right(void) {  // Turn right.
-    MAKE_TURN(((int32_t)LeftSteps - (int32_t)RightSteps), (4), speed, -speed)
+    MAKE_TURN(((int32_t)LeftSteps - (int32_t)RightSteps), (3), speed, -speed)
 }
 
 typedef enum {
@@ -383,7 +465,7 @@ void profiler(void) {
   unsigned int command, command_param, total_length, ii, cmd_status;
   int brakepath1, brakepath2;
 
-  if (state == idle) {
+  while (state == idle) {
       if (block_command_read) return;
       command  = get_command();
       command_param = command & ~COMMAND_MASK;
@@ -448,12 +530,14 @@ void profiler(void) {
               degree = 90;
           }
 
-          reset_steps();
+//          reset_steps();
           Motor_Enable();
-
+//#define SLOW_DIST_OLD
           stop_difference = ((degree == 180) ? DEGREE_TO_STEPS(135) : DEGREE_TO_STEPS(45));
           fail_difference = ((degree == 180) ? DEGREE_TO_STEPS(270) : DEGREE_TO_STEPS(135));
-//          slow_difference = ((degree == 180) ? DEGREE(120) : DEGREE(60));
+#ifdef SLOW_DIST_OLD
+          slow_difference = ((degree == 180) ? DEGREE_TO_STEPS(120) : DEGREE_TO_STEPS(60));
+#else
           {
               int circle_length = (degree == 180) ? ((180 * TRACK_WIDE * 314)+(100*360/2)) / (100 * 360) : ((90 * TRACK_WIDE * 314)+(100*360/2)) / (100 * 360);
               int brakepath = (long long)data.maxmotor*data.maxmotor * 121/data.acceleration/1200000;
@@ -463,7 +547,7 @@ void profiler(void) {
                   slow_difference = MM_TO_STEPS(circle_length - brakepath);
               }
           }
-
+#endif
           switch (turn_dir) {
             case left:      // turn left
               last_turn = left;
@@ -513,7 +597,7 @@ void profiler(void) {
           state = blind_run;
           Motor_Enable();
           if (speed == 0) startdistance = CURRENT_DISTANCE;
-          guarddistance = (command & ~COMMAND_MASK);
+          guarddistance = command_param;
           if (guarddistance == 0) guarddistance = 100;
           guarddistance += startdistance;
 //          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать двигаться сразу
@@ -527,7 +611,16 @@ void profiler(void) {
 //          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
           break;
 
+        case command_benchmark:
+          if (command_param) {
+              benchmark_start();
+          } else {
+              benchmark_stop();
+          }
+          break;
+
         default:
+          state = idle;
           profiler_error_code = profiler_error_cmd_err;
           drop_command_queue();
           break;
@@ -535,6 +628,7 @@ void profiler(void) {
 //      break;
       // конец интерпретации команд.
   }
+
   switch (state) {
     // Состояния профайлера. switch (state) продолжение
     case segment_run:
@@ -593,6 +687,7 @@ void profiler(void) {
           if (cmd_status > 1) {
               profiler_error_code = profiler_error_turn;
               drop_command_queue();
+              state = idle;
           }
       }
       break;
@@ -607,6 +702,7 @@ void profiler(void) {
           if (cmd_status > 1) {
               profiler_error_code = profiler_error_turn;
               drop_command_queue();
+              state = idle;
           }
       }
       break;
@@ -618,15 +714,16 @@ void profiler(void) {
           if (cmd_status > 1) {
               profiler_error_code = profiler_error_no_entrance;
               drop_command_queue();
+              state = idle;
           }
       }
       break;
 
     default:
       if (state != idle) {
-        state = idle;
         profiler_error_code = profiler_error_state_err;
         drop_command_queue();
+        state = idle;
       }
   }
 }

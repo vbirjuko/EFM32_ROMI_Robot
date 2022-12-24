@@ -17,7 +17,7 @@ volatile unsigned int kbddelay;
 
 void kbd_init(void) {
 #ifdef PCA
-	unsigned char conf_buffer[1] = { 0xFF };
+	unsigned char conf_buffer[1] = { 0xF7 };
 	i2c_wr_reg(I2C_PCA_ADDR, configuration,       conf_buffer, 1);
 	i2c_wr_reg(I2C_PCA_ADDR, polarity_inversion,  conf_buffer, 1);
 	i2c_rd_reg(I2C_PCA_ADDR, input_port,          conf_buffer, 1);
@@ -37,11 +37,11 @@ unsigned int kbdread(void) {
   unsigned int readkey = 0;
 	BlueTooth_parse();
 #ifdef PCA
-	if (i2c_rd(I2C_PCA_ADDR, (unsigned char *)&readkey, 1)) {
-//  if (i2c_rd_reg(I2C_PCA_ADDR, input_port, (unsigned char *)&readkey, 1)) {
+	if (i2c_rd_reg(I2C_PCA_ADDR, input_port, (unsigned char *)&readkey, 1)) {
 		LaunchPad_LED(1);
-		readkey = (kbddelay) ? (prevkey & 0xFF) : 0 ;
+		readkey = (kbddelay) ? (prevkey & KEY_MASK) : 0 ;
 	}		
+	readkey &= KEY_MASK;
 	readkey |= (LaunchPad_Input() << 8); 
 #elif defined(KEYB_PORT)
   readkey = ((KEY_PORT->IN & KEY_MASK) ^ KEY_MASK) | (LaunchPad_Input() << 8);

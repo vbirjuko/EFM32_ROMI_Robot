@@ -16,6 +16,9 @@
 #include "crc.h"
 #include "math.h"
 #include "resources.h"
+#include "opt3101.h"
+#include "benchmark.h"
+#include "commandline.h"
 
 #define MAX_PATH_LENGTH (sizeof(data.length)/sizeof(data.length[0]))
 rotation_dir_t path[MAX_PATH_LENGTH];
@@ -65,7 +68,7 @@ void update_coordinate (coordinate_t *current_coordinate, unsigned int length, b
 }
 
 unsigned int PlayMaze(void) {
-    int step=0, cell_step;
+    int step=0, cell_step, wall_distance = 100;
 
     cell_step = (data.cell_step) ? data.cell_step : 100;
     if (data.pathlength == 0) return 1;
@@ -73,20 +76,53 @@ unsigned int PlayMaze(void) {
 #ifdef DATALOG
     data_log_init();
 #endif
-    while (put_command(command_wait | 2 * FRAMESCANPERSECOND)) continue;
+    while (put_command(command_wait | (2 * FRAMESCANPERSECOND))) continue;
+    while (put_command(command_benchmark | 1)) continue;
     while (put_command(command_entrance | cell_step)) continue;
 
     while (step < data.pathlength) {
+//        char cmd_num[9];
         while (put_command(data.length[step])) continue;
+//        if (step < 8) {
+//            uint8_t hex_str[] = "0123456789ABCDEF";
+//            cmd_num[0] = hex_str[(data.length[step] >> 28) & 0x0F];
+//            cmd_num[1] = hex_str[(data.length[step] >> 24) & 0x0F];
+//            cmd_num[2] = hex_str[(data.length[step] >> 20) & 0x0F];
+//            cmd_num[3] = hex_str[(data.length[step] >> 16) & 0x0F];
+//            cmd_num[4] = hex_str[(data.length[step] >> 12) & 0x0F];
+//            cmd_num[5] = hex_str[(data.length[step] >> 8) & 0x0F];
+//            cmd_num[6] = hex_str[(data.length[step] >> 4) & 0x0F];
+//            cmd_num[7] = hex_str[(data.length[step] >> 0) & 0x0F];
+//            cmd_num[8] = 0;
+//            putstr(0, step, cmd_num, 0);
+//            update_display();
+//        }
         step++;
     };
-    while (put_command(command_finish | 100)) continue;
-    while (put_command(command_wait | 2 * FRAMESCANPERSECOND)) continue;
+    wall_distance = data.red_wall;
+    if (wall_distance > 150) wall_distance = 150;
+    if (wall_distance > 50) {
+        while (put_command(command_finish | (wall_distance - 50)))   continue;
+    }
+    while (put_command(command_benchmark | 0)) continue;
+    while (put_command(command_wait | (2 * FRAMESCANPERSECOND))) continue;
     while (profiler_queue_empty == 0) continue;
     profiler_data_ready = 0;
 #ifdef DATALOG
     data_log_finish();
 #endif
+    if (profiler_error_code == 0) {
+        show_number(benchmark_time(10), 1);
+    } else {
+        char err_code_str[] = "Error Code 0";
+        squareXY(0,0, 127, 63, 1);
+        update_display();
+        err_code_str[11] = '0'+profiler_error_code;
+        putstr(0, 3, "Profiler Error", 1);
+        putstr(0, 4, err_code_str, 1);
+        profiler_error_code = 0;
+    }
+    while (kbdread() != KEY_DOWN) continue;
     return 0;
 }
 
@@ -105,7 +141,7 @@ void SpeedPlay(void) {
 // (values from 0 to 5, otherwise uses random),
 // excluding branches where robot already was checked.
 unsigned int solveMaze(void) {
-  unsigned int available, ii, next_segment_length = 0;
+  unsigned int available, ii, current_segment_length = 0, next_segment_length = 0, wall_distance = 100;
   unsigned int count_green, count_yellow, count_red,
                skiplevel,         // переменная выбора проходов: 0 - разворот,
                                   // 1 - зелёные - ни разу не посещенные,
@@ -125,6 +161,13 @@ unsigned int solveMaze(void) {
 #ifdef DATALOG
   data_log_init();
 #endif
+
+#ifndef DEBUG_MAZE
+  OPT3101_Init();
+  OPT3101_Setup();
+  OPT3101_CalibrateInternalCrosstalk();
+#endif
+
   drop_command_queue();
   // Проезжаем вперед на половину корпуса вслепую
   put_command(command_wait | 2 * FRAMESCANPERSECOND);
@@ -173,18 +216,20 @@ unsigned int solveMaze(void) {
               return 1;
           }
           Rand();
+          BlueTooth_parse();
           continue;
       }
 //      LaunchPad_Output(0);
       available = node_configuration;
+      current_segment_length = segment_length;
       profiler_data_ready = 0;
 
       // если указана величина клетки, то подгоняем длину сегмента под этот шаг.
       if (data.cell_step) {
-          segment_length = ((segment_length + data.cell_step/2) / data.cell_step) * data.cell_step;
-          if (segment_length == 0) segment_length = data.cell_step;
+          current_segment_length = ((current_segment_length + data.cell_step/2) / data.cell_step) * data.cell_step;
+          if (current_segment_length == 0) current_segment_length = data.cell_step;
       }
-      update_coordinate(&my_coordinate, segment_length, (bearing_dir_t)move_direction);
+      update_coordinate(&my_coordinate, current_segment_length, (bearing_dir_t)move_direction);
 
       for (current_index = 0; current_index < max_map_cell; current_index++) { // ищем похожие координаты
           // И проверяем, были ли мы уже здесь?
@@ -257,7 +302,9 @@ unsigned int solveMaze(void) {
                   if (map[current_index].pass_count[(move_direction + back) & TURN_MASK] < 2) {
                       map[current_index].pass_count[(move_direction + back) & TURN_MASK] += 1;
                   }
-              } else skippasscount = 0;
+              } else {
+                  skippasscount--;
+              }
               map[current_index].node_link [(move_direction + back) & TURN_MASK] = last_index;
           }
           if (!available) {
@@ -267,12 +314,14 @@ unsigned int solveMaze(void) {
                   data.red_cell_nr = current_index;
                   found_red = 1;
                   LaunchPad_Output(RED);
+                  data.red_wall = OPT_MeasureFrontWallDistance();
                   break;
 
                 case green:
                   data.green_cell_nr = current_index;
 //                  put_command(command_wait | 2 * FRAMESCANPERSECOND);
                   LaunchPad_Output(GREEN);
+                  data.green_wall = OPT_MeasureFrontWallDistance();
                   break;
 
                 case white:
@@ -299,7 +348,11 @@ unsigned int solveMaze(void) {
           else if (count_green)  skiplevel = 1;  // оставить только зелёные проходы
           else if (count_yellow) skiplevel = 2;  // оставить все не красные проходы
           else {
-              put_command(command_finish | 100);
+              wall_distance = data.green_wall;
+              if (wall_distance > 150) wall_distance = 150;
+              if (wall_distance > 50) {
+                  put_command(command_finish | (wall_distance - 50));
+              }
               put_command(command_wait | 2 * FRAMESCANPERSECOND);
               goto finish;   // если нет ни зелёного, ни желтого прохода - больше идти некуда.
           }
@@ -379,14 +432,14 @@ unsigned int solveMaze(void) {
           turn_direction &= TURN_MASK;
           skiplevel = 1;
           pathsequence = 0;
-          play = 1;
+          play = 0;
           // *
           // *************************************************************************************************
       }
 
       if (data.pathlength) {
 //          LaunchPad_Output(BLUE);
-          if (--play == 0) {
+          if (play == 0) {
               while (((length[pathsequence] & COMMAND_MASK) == command_turn) && (pathsequence < data.pathlength)) {
                   while (put_command(length[pathsequence]));
                   turn_direction =  length[pathsequence]; // для отображения на дисплее
@@ -395,12 +448,16 @@ unsigned int solveMaze(void) {
 
                   // Заезд на красное поле, пауза и возвращение в лабиринт.
                   if ((pathsequence == 0) && (found_red) && ((int)current_index == data.red_cell_nr)) {
-                      put_command(command_back | 100);
-                      put_command(command_wait | 2 * FRAMESCANPERSECOND);
+                      wall_distance = data.red_wall;
+                      if (wall_distance > 150) wall_distance = 150;
+                      if (wall_distance > 50) {
+                          put_command(command_back | (wall_distance - 50));
+                      }
+                      put_command(command_wait | (2 * FRAMESCANPERSECOND));
                       if (data.cell_step) put_command(command_entrance | data.cell_step);
                       else                put_command(command_entrance | 150);
 
-//                      // И сохраним промежуточную карту? нет,нельзя - может еще пишется журнал
+//                      // И сохраним промежуточную карту? нет,нельзя - еще пишется журнал
 //                      data.map_size = max_map_cell;
 //                      spi_write_eeprom(ROM_map_addr, (uint8_t *)&map, sizeof(map));
 //                      Search_Short_Way_with_turns();
@@ -418,11 +475,12 @@ unsigned int solveMaze(void) {
                   play++;
               }
               block_profiler(0);
-              if (pathsequence >= data.pathlength) {
-                  data.pathlength = 0;
-                  skippasscount = 1;
-              }
           }
+          if ((pathsequence >= data.pathlength) && (play < 2)) {
+              data.pathlength = 0;
+              skippasscount = 1;
+          }
+          play--;
       } else {
 //          LaunchPad_Output(GREEN);
           switch (turn_direction) {
@@ -485,12 +543,9 @@ unsigned int solveMaze(void) {
 
 #include "em_common.h"
 
-SL_WEAK void benchmark_start(void) { };
-SL_WEAK unsigned int benchmark_stop(void) { return 0; };
-
 
 unsigned int calculation_time;
-static unsigned int path_length_table[MAX_MAP_SIZE*2];
+static uint32_t path_length_table[MAX_MAP_SIZE*2];
 
 #define QUEUE_SIZE  64
 static unsigned int sort_idx[QUEUE_SIZE], sort_tail=0;
@@ -544,7 +599,7 @@ unsigned int Search_Short_Way_with_turns(void) {
   int	distance;
   int prev_bearing, bearing;
 
-  fill_data32_dma(0xffffffff, (uint32_t*)path_length_table, data.map_size*2);
+  fill_data32_dma(0xffffffff, path_length_table, data.map_size*2);
   data.pathlength = 0;
 
   InitBrakePath();
@@ -556,7 +611,7 @@ unsigned int Search_Short_Way_with_turns(void) {
   // меридианальные сегменты - север/юг, к нечетным широтные - запад/восток.
   // каждый из этих сегментов удлинняется на стоимость прямого прохода узла.
 
-  benchmark_start();
+//  benchmark_start();
   while (dma_flag) continue; // ждём окончания fill_dma path_length[] <= 0xFFFFFFFF
   // Начинаем поиск с конца - стартовая точка финиш.
   // Причем, прибытие с любой стороны допустимо.
@@ -666,7 +721,7 @@ unsigned int search_way_simple(unsigned int start, unsigned int finish, bearing_
   int distance;
   bearing_dir_t prev_bearing, bearing;
 
-  fill_data32_dma(0xffffffff, (uint32_t*)path_length_table, MAX_MAP_SIZE*2);
+  fill_data32_dma(0xffffffff, path_length_table, MAX_MAP_SIZE*2);
   while (dma_flag) continue; // ждём окончания fill_dma path_length[] <= 0xFFFFFFFF
   // Начинаем поиск с конца - стартовая точка финиш.
   // Причем, прибытие с любой стороны допустимо.

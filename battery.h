@@ -18,6 +18,9 @@ typedef struct {
 } LPF_t;
 
 extern LPF_t LPF_battery;
+
+void LPF__Init(LPF_t * instance, uint32_t initial, uint32_t size);
+uint32_t LPF__Calc(LPF_t * instance, uint32_t newdata);
 void init_battery(void);
 unsigned int get_battery_voltage(void);
 void ShowBattery(void);
