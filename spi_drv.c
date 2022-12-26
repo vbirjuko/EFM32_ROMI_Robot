@@ -373,13 +373,11 @@ void fill_data32_dma(uint32_t data, uint32_t* dest, uint16_t count) {
         LDMA_StartTransfer(LDMA_MEM2MEM_CHANNEL, &xferCfg, &descriptor[0]);
     } else {
         while (dma_flag) continue;
-        xferCfg = (LDMA_TransferCfg_t) LDMA_TRANSFER_CFG_MEMORY_LOOP((count / 2048)-1);
+        xferCfg      = (LDMA_TransferCfg_t) LDMA_TRANSFER_CFG_MEMORY_LOOP((count / 2048)-1);
         descriptor[0] = (LDMA_Descriptor_t) LDMA_DESCRIPTOR_LINKREL_M2M_WORD(source, dest, ((count-1) % 2048) + 1, 1);
         descriptor[1] = (LDMA_Descriptor_t) LDMA_DESCRIPTOR_LINKREL_M2M_WORD(source,    0, 2048, 0);
 
         source[0] = data;
-//        xferCfg.ldmaLoopCnt =  - 1;
-//        descriptor[0].xfer.xferCnt = (count-1) % 2048;
         descriptor[0].xfer.srcInc = ldmaCtrlSrcIncNone;
         descriptor[1].xfer.srcInc = ldmaCtrlSrcIncNone;
         descriptor[1].xfer.dstAddrMode = ldmaCtrlDstAddrModeRel;
@@ -410,8 +408,6 @@ void fill_data16_dma(uint16_t data, uint16_t* dest, uint16_t count) {
         descriptor[1] = (LDMA_Descriptor_t) LDMA_DESCRIPTOR_LINKREL_M2M_HALF(source,    0, 2048, 0);
 
         source[0] = data;
-//        xferCfg.ldmaLoopCnt =  - 1;
-//        descriptor[0].xfer.xferCnt = (count-1) % 2048;
         descriptor[0].xfer.srcInc = ldmaCtrlSrcIncNone;
         descriptor[1].xfer.srcInc = ldmaCtrlSrcIncNone;
         descriptor[1].xfer.dstAddrMode = ldmaCtrlDstAddrModeRel;

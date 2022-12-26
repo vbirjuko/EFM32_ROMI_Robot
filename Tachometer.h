@@ -18,7 +18,7 @@ enum TachDirection{
 };
 
 typedef struct {
-    uint32_t Period;
+    int32_t Period;
     enum  		TachDirection  Dir;
 } Tach_stru_t;
 

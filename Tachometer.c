@@ -6,12 +6,14 @@
  *
  */
 
+#define USE_DMA
 //#define PERIOD_AVERAGE
 #define PERIOD_EXP_AVERAGE
 
 #include "em_device.h"
 #include "em_gpio.h"
 #include "em_cmu.h"
+#include "em_ldma.h"
 
 #include "Tachometer.h"
 #include "display.h"
@@ -24,8 +26,9 @@
 #define WTIMER_CC_PRS(A) WTIMER_CC_CTRL_PRSSEL_PRSCH ## A
 #define WTIMER_CC_PRSSEL_PRSCH(A) WTIMER_CC_PRS(A)
 
-volatile Tach_stru_t TachLeft, TachRight;
+Tach_stru_t TachLeft, TachRight;
 
+#ifndef USE_DMA
 volatile unsigned int RollOverLeft = 0, RollOverRight = 0;
 volatile uint32_t LeftPeriodInc = 0, RightPeriodInc = 0;
 
@@ -91,6 +94,8 @@ void tachometerwRightInt(uint32_t currenttime){
     TachRight.Period = average;
 #endif
 }
+#endif
+
 
 void reset_steps(void) {
 //  WTIMER0->CNT = 0;
@@ -98,6 +103,14 @@ void reset_steps(void) {
   PCNT2->CMD = PCNT_CMD_LCNTIM;
 }
 
+#ifdef USE_DMA
+volatile  int LeftBuf[2], RightBuf[2];
+LDMA_TransferCfg_t LeftCfg  = LDMA_TRANSFER_CFG_PERIPHERAL(ldmaPeripheralSignal_WTIMER0_CC1);
+LDMA_TransferCfg_t RightCfg = LDMA_TRANSFER_CFG_PERIPHERAL(ldmaPeripheralSignal_WTIMER0_CC0);
+
+LDMA_Descriptor_t LeftDesc  = LDMA_DESCRIPTOR_LINKREL_P2M_WORD(&WTIMER0->CC[1].CCV, LeftBuf,  2, 0);
+LDMA_Descriptor_t RightDesc = LDMA_DESCRIPTOR_LINKREL_P2M_WORD(&WTIMER0->CC[0].CCV, RightBuf, 2, 0);
+#endif
 
 void tachometer_init() {
 	TachLeft.Dir = TachRight.Dir = STOPPED;
@@ -142,14 +155,21 @@ void tachometer_init() {
   WTIMER0->ROUTELOC0  = WTIMER_ROUTELOC0_CC1LOC_LOC6;
   WTIMER0->ROUTEPEN   = WTIMER_ROUTEPEN_CC1PEN;
 
+#ifndef USE_DMA
   WTIMER0->IEN = WTIMER_IEN_CC1 | WTIMER_IEN_CC0;
 
   NVIC_SetPriority(WTIMER0_IRQn, WTIMER0_IRQ_PRI);
   NVIC_EnableIRQ(WTIMER0_IRQn);
+#else
+  LDMA_StartTransfer(LDMA_TACH_LEFT_CHANNEL, &LeftCfg, &LeftDesc);
+  LDMA_StartTransfer(LDMA_TACH_RIGHT_CHANNEL, &RightCfg, &RightDesc);
+#endif
 
   WTIMER0->CMD = WTIMER_CMD_START;
 }
 
+
+#ifndef USE_DMA
 void WTIMER0_IRQHandler(void) {
   if (WTIMER0->IF & WTIMER_IF_CC0) {
       WTIMER0->IFC = WTIMER_IFC_CC0;
@@ -160,6 +180,7 @@ void WTIMER0_IRQHandler(void) {
       tachometerwLeftInt(WTIMER0->CC[1].CCV);
   }
 }
+#endif
 
 // ------------Tachometer_Get------------
 // Get the most recent tachometer measurements.
@@ -172,6 +193,7 @@ void WTIMER0_IRQHandler(void) {
 // Output: none
 // Assumes: Tachometer_Init() has been called
 // Assumes: Clock_Init48MHz() has been called
+#ifndef USE_DMA
 void Tachometer_Get(Tach_stru_t *leftTach, Tach_stru_t *rightTach) {
   if (EventCountLeft == 0)  TachLeft.Dir  = STOPPED;
   if (EventCountRight == 0) TachRight.Dir = STOPPED;
@@ -180,6 +202,29 @@ void Tachometer_Get(Tach_stru_t *leftTach, Tach_stru_t *rightTach) {
 
   EventCountLeft = EventCountRight = 0;
 }
+#else
+void Tachometer_Get(Tach_stru_t *leftTach, Tach_stru_t *rightTach) {
+
+  if (WTIMER0->IF & WTIMER_IF_CC1) {
+      WTIMER0->IFC = WTIMER_IF_CC1;
+      TachLeft.Dir =  (PCNT1->STATUS & PCNT_STATUS_DIR) ? REVERSE : FORWARD;
+      TachLeft.Period = LeftBuf[0] - LeftBuf[1];
+      if (TachLeft.Period < 0) TachLeft.Period = -TachLeft.Period;
+  } else {
+      TachLeft.Dir  = STOPPED;
+  }
+  if (WTIMER0->IF & WTIMER_IF_CC0) {
+      WTIMER0->IFC = WTIMER_IF_CC0;
+      TachRight.Dir =  (PCNT2->STATUS & PCNT_STATUS_DIR) ? REVERSE : FORWARD;
+      TachRight.Period = RightBuf[0] - RightBuf[1];
+      if (TachRight.Period < 0) TachRight.Period = -TachRight.Period;
+  } else {
+      TachRight.Dir  = STOPPED;
+  }
+  *rightTach = TachRight;
+  *leftTach  = TachLeft;
+}
+#endif
 
 
 void TestTachom(void)       {

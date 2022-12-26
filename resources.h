@@ -53,10 +53,14 @@
 
 
 // LDMA channels
+#define LDMA_ADC_CHANNEL                    0
 #define LDMA_USART3_RX_CHANNEL              1
 #define LDMA_USART3_TX_CHANNEL              2
-#define LDMA_USART_OLED_CHANNEL             3
-#define LDMA_ADC_CHANNEL                    0
+#define LDMA_USART_OLED_CHANNEL             2
+//#define                                   3
+#define LDMA_TACH_LEFT_CHANNEL              4
+#define LDMA_TACH_RIGHT_CHANNEL             5
+//#define                                   6
 #define LDMA_MEM2MEM_CHANNEL                7
 
 
