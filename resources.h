@@ -13,6 +13,7 @@
 #define PCA
 #define DATALOG
 //#define DEBUG_MAZE
+//#define PROFILER_PENDSV
 
 #define CPU_FREQ    (50000000LL)
 
@@ -25,6 +26,18 @@
 
 // Ширина колеи робота для вычисления поворотов
 #define TRACK_WIDE      (143L)
+
+
+#ifdef SPEED_MM_PER_SECOND
+// сколько импульсов придёт на таймер если колесо вращается/движется со скоростью 0,1 мм/с
+// при заданной частоте тактовых импульсов
+// 220.0 mm - 720 pulses. => 2200/720 = 220/72 = 55/18 = 3.055(5) pulses per second. Freq = CPU_Freq divide 4
+#define T_CONSTANT (CPU_FREQ * 55/4/18)
+#else
+// 50 000 000 / 4 * 60 * 100 / 360 = CPU_FREQ * 6000/(360*4) = CPU_FREQ * 25 / 6
+// И еще делим на 2 так как тахометр срабатывает и по фронту и по спаду.
+#define T_CONSTANT  (CPU_FREQ * 25 / 12)
+#endif
 
 // 220mm per 720 tick of two wheels.
 // 220 mm  ~ 1440  / 20
@@ -65,12 +78,15 @@
 
 
 // PRS channels
-#define TACH_PRS_CH                         1
 // Должен быть канал 2 для вывода через PF5
+// и еще два перед ним для формирования RS триггера
+//#define USE_RS_TRIGGER
 #define REFL_LED_PRS_CH                     2
 // Следующие два должны быть по порядку так как объединяются по ИЛИ!
 #define REFL_CAPT_LIGHT_PRS_CH              3
 #define REFL_CAPT_DARK_PRS_CH               4
+
+#define TACH_PRS_CH                         5
 
 // IRQ priorities:
 #define SysTick_IRQ_Priority  2
@@ -83,5 +99,7 @@
 #define ADC0_IRQ_Priority     5
 #define LETIMER0_IRQ_Priority 5
 #define PendSV_IRQ_priority   7
+
+#define constrain(amt, min, max)  ((amt) < (min)) ? (min) : (((amt) > (max)) ? (max) : (amt))
 
 #endif /* RESOURCES_H_ */

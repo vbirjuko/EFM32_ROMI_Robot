@@ -3,6 +3,7 @@
  *
  *  Created on: 23 апр. 2021 г.
  *      Author: wl
+ *
  */
 
 #include "em_device.h"
@@ -38,6 +39,7 @@
 //
 // reflectance sensor 2 connected to PE.5   APORT4XCH5                5
 //                                          (robot's left)
+
 #define REFL_PORT_7   (1ul << 11)
 #define REFL_PORT_6   (1ul << 15)
 #define REFL_PORT_5   (1ul << 13)
@@ -98,14 +100,24 @@ void Reflectance_Init(unsigned int threshold, int ir_led_level){
 
   TIMER2->CC[2].CTRL = TIMER_CC_CTRL_MODE_PWM | TIMER_CC_CTRL_PRSCONF_PULSE;
   TIMER2->CC[2].CCV = (REFL_PERIOD-200)*CPU_FREQ / 8000000;  // Считывание за 50 мкс до включения подсветки
+
+#ifdef USE_RS_TRIGGER
+  TIMER2->CC[0].CTRL = TIMER_CC_CTRL_MODE_PWM | TIMER_CC_CTRL_PRSCONF_PULSE;
+#else
   TIMER2->CC[0].CTRL = TIMER_CC_CTRL_MODE_PWM | TIMER_CC_CTRL_PRSCONF_LEVEL;
+#endif
   TIMER2->CC[0].CCV = (REFL_PERIOD-150)*CPU_FREQ / 8000000;  // Подсветку включаем за 150 мкс до конца цикла
   TIMER2->CC[1].CTRL = TIMER_CC_CTRL_MODE_PWM | TIMER_CC_CTRL_PRSCONF_PULSE;
   TIMER2->CC[1].CCV = (REFL_PERIOD-50)*CPU_FREQ / 8000000;  // Считывание через 100 мкс после включения подсветки (и за 50 мкс до выключения)
 
-
   // включение и выключение ИК подсветки
+#ifdef USE_RS_TRIGGER
+  PRS->CH[REFL_LED_PRS_CH-2].CTRL = PRS_CH_CTRL_SOURCESEL_PRS | PRS_CH_CTRL_SIGSEL_PRSCH1;
+  PRS->CH[REFL_LED_PRS_CH-1].CTRL = PRS_CH_CTRL_SOURCESEL_TIMER2 | PRS_CH_CTRL_SIGSEL_TIMER2CC0 | PRS_CH_CTRL_ORPREV | PRS_CH_CTRL_INV;
+  PRS->CH[REFL_LED_PRS_CH].CTRL   = PRS_CH_CTRL_SOURCESEL_ADC0   | PRS_CH_CTRL_SIGSEL_ADC0SCAN  | PRS_CH_CTRL_ORPREV | PRS_CH_CTRL_INV;
+#else
   PRS->CH[REFL_LED_PRS_CH].CTRL = PRS_CH_CTRL_SOURCESEL_TIMER2 | PRS_CH_CTRL_SIGSEL_TIMER2CC0 | PRS_CH_CTRL_INV;
+#endif
   PRS->ROUTELOC0 = PRS_ROUTELOC_CH(REFL_LED_PRS_CH);
   PRS->ROUTEPEN  = PRS_ROUTEPEN_CH(REFL_LED_PRS_CH);
 
@@ -166,7 +178,7 @@ void ldma_adc_eoc(void) {
 #endif
       if (photo_array[ii+8] > (photo_array[ii]+30)) refl_fail = 1;
       if (photo_array[ii+8] < (data.threshold >> 3)) current_sensor &=  ~mask;
-      else  if ((photo_array[ii] > (X_OFFSET + (data.threshold >> 3))) && (((photo_array[ii]-X_OFFSET)*Y_SLOPE) > photo_array[ii+8])) {
+      else  if ((photo_array[ii] > (data.x_offset + (data.threshold >> 3))) && (((photo_array[ii]-data.x_offset)*data.y_slope/256) > photo_array[ii+8])) {
           current_sensor &= ~mask;
       } else {
           current_sensor |= mask;
@@ -175,7 +187,11 @@ void ldma_adc_eoc(void) {
   }
   photo_data_ready = 1;
 //  LDMA_StartTransfer(LDMA_ADC_CHANNEL, &adcXferCfg, &adc_descriptor);
+#ifdef PROFILER_PENDSV
   SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
+#else
+  TIMER3->IFS = TIMER_IFS_CC0;
+#endif
 #ifdef DEBUG_ADC
   GPIO_PinOutClear(gpioPortD, 1);
 #endif
@@ -244,7 +260,7 @@ void TestReflect(void) {
 //  #define X_OFFSET  80
 //  #define Y_SLOPE   8ul/10
 
-  lineXY(X_OFFSET >> 1, 63, 127, 63-(((255-X_OFFSET)*Y_SLOPE) >> 2) , 1);
+  lineXY(data.x_offset >> 1, 63, 127, 63-(((255-data.x_offset)*data.y_slope/256) >> 2) , 1);
   if (refl_fail) {
       putstr(0, 0, "FAIL", 1);
   }

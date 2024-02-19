@@ -254,6 +254,16 @@ void TestTachom(void)       {
       case KEY_DOWN:
         return;
     }
+    unsigned int LeftP = T_CONSTANT/TachLeft.Period*128/20000,
+                RightP = T_CONSTANT/TachRight.Period*128/20000;
+    if (LeftP > 127) LeftP = 127;
+    if (RightP > 127) RightP = 127;
+
+    squareXY(0, 41, LeftP, 46, 1);
+    squareXY(LeftP+1, 41, 127, 46, 0);
+    squareXY(0, 49, RightP, 54, 1);
+    squareXY(RightP+1, 49, 127, 54, 0);
+    update_display();
 
 // *************************************************************
     switch (TachLeft.Dir) {

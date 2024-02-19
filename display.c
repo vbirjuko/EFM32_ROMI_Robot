@@ -923,13 +923,13 @@ void ColorSensorTestHSI(uint16_t *colors, unsigned int new) {
 		levels[1] = (invsaturation >> 4); // канал насыщенности
 		levels[2] = 0;
 
-    for (i=0; i<3; i++) {
+    for (i=1; i<4; i++) {
       string[0] = bin2hex((colors[i] >>12) & 0x0f);
       string[1] = bin2hex((colors[i] >> 8) & 0x0f);
       string[2] = bin2hex((colors[i] >> 4) & 0x0f);
       string[3] = bin2hex((colors[i] >> 0) & 0x0f);
       string[4] = 0;
-      putstr(i*5+1, 0, string, 0);
+      putstr((i-1)*5+1, 0, string, 0);
     }
 
 		if (levels[0] > 55) levels[0] = 55;

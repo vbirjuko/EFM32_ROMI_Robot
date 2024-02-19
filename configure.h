@@ -44,8 +44,10 @@ typedef struct {
     int cell_step;
     int str_accel;
     int color_saturation;
-    uint8_t path[(MAX_MAP_SIZE * 2) - 8];
+    uint8_t path[(MAX_MAP_SIZE * 2) - 16];
     int length[MAX_MAP_SIZE * 2];
+    int x_offset;
+    int y_slope;
     int green_wall;
     int red_wall;
     int log_watermark;

@@ -35,11 +35,9 @@ void Motor_PWM (int16_t left, int16_t right) {
     }
     if (right < 0) {
         BUS_RegBitWrite(&GPIO->P[DIRECTION_PORT_RIGHT].DOUT, DIRECTION_RIGHT, 1);
-//        BUS_RamBitWrite(&launchpad_LED_state, DIRECTION_RIGHT, 1);
         TIMER1->CC[2].CCV = -right;
     } else {
         BUS_RegBitWrite(&GPIO->P[DIRECTION_PORT_RIGHT].DOUT, DIRECTION_RIGHT, 0);
-//        BUS_RamBitWrite(&launchpad_LED_state, DIRECTION_RIGHT, 0);
         TIMER1->CC[2].CCV = right;
     }
 }
@@ -75,11 +73,14 @@ void Controller(void){
     UIL += (data.motor_Kint*ErrorL) >> 10;
     UIR += (data.motor_Kint*ErrorR) >> 10;
 
-    if (UIL > 14999) UIL = 14999;
-    else if (UIL < -14999) UIL = -14999;
+    UIL = constrain(UIL, -14999, 14999);
+    UIR = constrain(UIR, -14999, 14999);
 
-    if (UIR > 14999) UIR = 14999;
-    else if (UIR < -14999) UIR = -14999;
+//    if (UIL > 14999) UIL = 14999;
+//    else if (UIL < -14999) UIL = -14999;
+//
+//    if (UIR > 14999) UIR = 14999;
+//    else if (UIR < -14999) UIR = -14999;
 
     UPL = (data.motor_Kprop*ErrorL) >> 10;
     UPR = (data.motor_Kprop*ErrorR) >> 10;
@@ -90,11 +91,14 @@ void Controller(void){
     if (XstartL == 0 && Left.Dir  == STOPPED) UIL = UL = 0;
     if (XstartR == 0 && Right.Dir == STOPPED) UIR = UR = 0;
 
-    if (UL > 14999) UL = 14999;
-    else if (UL < -14999) UL = -14999;
+    UL = constrain(UL, -14999, 14999);
+    UR = constrain(UR, -14999, 14999);
 
-    if (UR > 14999) UR = 14999;
-    else if (UR < -14999) UR = -14999;
+//    if (UL > 14999) UL = 14999;
+//    else if (UL < -14999) UL = -14999;
+//
+//    if (UR > 14999) UR = 14999;
+//    else if (UR < -14999) UR = -14999;
 
 		Motor_PWM(UL, UR);
 }

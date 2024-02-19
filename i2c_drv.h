@@ -32,6 +32,7 @@ t_i2c_status i2c_display_init(void);
 void i2c_update_display(void);
 */
 
+void scan_i2c(void);
 
 #ifdef OLED_I2C
 #include "Adafruit_ssd1306.h"

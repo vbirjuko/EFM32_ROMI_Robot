@@ -6,6 +6,7 @@
  */
 
 #include "em_device.h"
+#include "em_cmu.h"
 #include "resources.h"
 #include "profiler.h"
 #include "Tachometer.h"
@@ -30,10 +31,7 @@
 
 
 #define COMMAND_QUEUE_FACTOR  7
-#define MINRPM  (800)
 
-// 220mm per 360 tick of two wheels.
-//#define CURRENT_DISTANCE  (((int32_t)LeftSteps + (int32_t)RightSteps) * 11L / (2*36))
 #define CURRENT_DISTANCE    (STEPS_TO_MM((int32_t)LeftSteps + (int32_t)RightSteps))
 
 int speed = 0;
@@ -232,8 +230,9 @@ unsigned int run_segment(void) {
       prev_track_error = track_error;
 
       sigma_error += track_error;
-      if (sigma_error > 2048) sigma_error = 2048;
-      if (sigma_error < -2048) sigma_error = -2048;
+      sigma_error = constrain(sigma_error, -2048, 2048);
+//      if (sigma_error > 2048) sigma_error = 2048;
+//      if (sigma_error < -2048) sigma_error = -2048;
 
       result = data.k_error*track_error + de_dt + ((sigma_error * data.k_integral) >> 10);
 
@@ -243,8 +242,9 @@ unsigned int run_segment(void) {
           if ((speed -= data.acceleration) < maxspeed) speed = maxspeed;
       }
 
-      left_speed = speed+(result*speed)/8192; // speed*(1+result/nom_speed)
-      right_speed = speed-(result*speed)/8192;
+      int nom_speed = (speed < data.minspeed) ? data.minspeed : speed;
+      left_speed  = speed+(result*nom_speed)/8192; // speed*(1+result/nom_speed)
+      right_speed = speed-(result*nom_speed)/8192;
 
 //      if (left_speed > data.maxmotor) left_speed = data.maxmotor;
 //      else if (left_speed < -data.maxmotor) left_speed = -data.maxmotor;
@@ -259,9 +259,6 @@ unsigned int run_segment(void) {
 }
 
 
-
-//#define BITBAND_SRAM_BASE BITBAND_RAM_BASE
-#define BITBAND_SRAM(x, b)  (*((__IO uint32_t *) (BITBAND_RAM_BASE +  (((uint32_t)(volatile const uint32_t *)&(x)) - SRAM_BASE  )*32 + (b)*4)))
 
 unsigned int check_node(void) {
   unsigned int ii, photo_sensor;
@@ -299,10 +296,12 @@ unsigned int check_node(void) {
       } else {
           if (photo_sensor & ((1u << 0) | (1u << 7))) {  // есть отходы в сторону
               // проверка условия непрерывности линии
+              unsigned int sensor_copy = photo_sensor;
               for (ii=0; ii < 8; ii++) {
-                  if (prev_stat != (BITBAND_SRAM(photo_sensor, ii))) {
-                      if ((prev_stat = BITBAND_SRAM(photo_sensor, ii)) == 1) linecount++;
+                  if (prev_stat != (sensor_copy & 0x01)) {
+                      if ((prev_stat = (sensor_copy & 0x01)) == 1) linecount++;
                   }
+                  sensor_copy >>= 1;
               }
               // поворот детектируется только если есть одна непрерывная линия
               if (linecount == 1) {
@@ -375,7 +374,6 @@ unsigned int blind_entrance(void) {
       if (CURRENT_DISTANCE < guarddistance) {
           if (CURRENT_DISTANCE < slowdistance) {
               if ((speed += data.acceleration) > data.maxspeed) speed = data.maxspeed;
-              if (speed < MINRPM) speed = MINRPM;
           } else {
               if ((speed -= data.acceleration) < data.minspeed) speed = data.minspeed;
           }
@@ -417,7 +415,6 @@ int stop_difference, fail_difference, slow_difference;
       } else {                                                                  \
           if ((speed -= data.acceleration) < data.turnspeed) speed = data.turnspeed;\
       }                                                                         \
-      if (speed < MINRPM) speed = MINRPM;                                       \
                                                                                 \
       if ((photo_sensor & (1 << SENSOR)) ^ last_status) count++;                \
       last_status = photo_sensor & (1 << SENSOR);                               \
@@ -478,7 +475,6 @@ void profiler(void) {
         case command_wait:
           wait_counter = command_param;
           state = wait_still;
-//          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать сразу
           break;
 
         // движение прямо по сегменту. В младших битах длина сегмента для расчета разгона и торможения.
@@ -497,12 +493,26 @@ void profiler(void) {
               }
           }
           if (speed == 0) startdistance = CURRENT_DISTANCE;
+#ifdef SPEED_MM_PER_SECOND
+          if (speed == 0) startdistance = CURRENT_DISTANCE;
+          // Расстояние, необходимое для торможения, если максимальная скорость не набирается:
+          // (V^2 - v^2) / (4 * a)  + distance/2
+          // V = speed * 0.1
+          // a = data.acceleration * 0.1 / FRAMESCANPERSECOND;
+          brakepath1 = ((long long)(speed + data.minspeed)*(speed - data.minspeed)+(data.acceleration*2*10*FRAMESCANPERSECOND))/
+                                    (data.acceleration*4*10*FRAMESCANPERSECOND) + total_length/2;
+          // Расстояние, необходимое для торможения от максимальной скорости:
+          // (V^2 - v^2) / (2 * a)
+          brakepath2 = ((long long)(data.maxspeed + data.minspeed)*(data.maxspeed - data.minspeed)+(data.acceleration*10*FRAMESCANPERSECOND))/
+                                    (data.acceleration*2*10*FRAMESCANPERSECOND);
+#else
           // Расстояние, необходимое для торможения, если максимальная скорость не набирается:
           // (220mm/100)^2 * (V^2 - v^2) / (4 * a * 400*60)  + distance/2
           brakepath1 = (long long)(speed + data.minspeed)*(speed - data.minspeed) * 121/data.acceleration/2400000 + total_length/2;
           // Расстояние, необходимое для торможения от максимальной скорости:
           // (220mm/100)^2 * (V^2 - v^2) / (2 * a * 400*60)
           brakepath2 = (long long)(data.maxspeed + data.minspeed)*(data.maxspeed - data.minspeed) * 121/data.acceleration/1200000;
+#endif
           // используем вариант с самым коротким тормозным путём
           if ((brakepath1 < brakepath2) && (brakepath1 >= 0)) {
               slowdistance = startdistance + total_length - data.sensor_offset - brakepath1;
@@ -510,8 +520,6 @@ void profiler(void) {
               slowdistance = startdistance + total_length - data.sensor_offset - brakepath2;
           }
           guarddistance = startdistance + data.guarddist;
-
-//          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать двигаться сразу
           break;
 
 
@@ -570,7 +578,6 @@ void profiler(void) {
               drop_command_queue();
               state = idle;
           }
-//          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать двигаться сразу
           break;
 
         case command_entrance:
@@ -585,12 +592,36 @@ void profiler(void) {
               }
           }
           startdistance = CURRENT_DISTANCE;
-          brakepath1 = (total_length/2) - (data.minspeed*data.minspeed)/data.acceleration * 121/2400000;
+#ifdef SPEED_MM_PER_SECOND
+          if (speed == 0) startdistance = CURRENT_DISTANCE;
+          // Расстояние, необходимое для торможения, если максимальная скорость не набирается:
+          // (V^2 - v^2) / (4 * a)  + distance/2
+          // V = speed * 0.1
+          // a = data.acceleration * 0.1 / FRAMESCANPERSECOND;
+          brakepath1 = ((long long)(speed + data.minspeed)*(speed - data.minspeed)+(data.acceleration*2*10*FRAMESCANPERSECOND))/
+                                    (data.acceleration*4*10*FRAMESCANPERSECOND) + total_length/2;
+          // Расстояние, необходимое для торможения от максимальной скорости:
+          // (V^2 - v^2) / (2 * a)
+          brakepath2 = ((long long)(data.maxspeed + data.minspeed)*(data.maxspeed - data.minspeed)+(data.acceleration*10*FRAMESCANPERSECOND))/
+                                    (data.acceleration*2*10*FRAMESCANPERSECOND);
+#else
+          // Расстояние, необходимое для торможения, если максимальная скорость не набирается:
+          // (220mm/100)^2 * (V^2 - v^2) / (4 * a * 400*60)  + distance/2
+          brakepath1 = (long long)(speed + data.minspeed)*(speed - data.minspeed) * 121/data.acceleration/2400000 + total_length/2;
+          // Расстояние, необходимое для торможения от максимальной скорости:
+          // (220mm/100)^2 * (V^2 - v^2) / (2 * a * 400*60)
+          brakepath2 = (long long)(data.maxspeed + data.minspeed)*(data.maxspeed - data.minspeed) * 121/data.acceleration/1200000;
+#endif
           // используем вариант с самым коротким тормозным путём
-          slowdistance = startdistance + total_length - data.sensor_offset - brakepath1;
+          if ((brakepath1 < brakepath2) && (brakepath1 >= 0)) {
+              slowdistance = startdistance + total_length - data.sensor_offset - brakepath1;
+          } else {
+              slowdistance = startdistance + total_length - data.sensor_offset - brakepath2;
+          }
+//          guarddistance = (data.cell_step) ? data.cell_step : 150;
           guarddistance = startdistance + command_param; //   15см защитный интервал
-//          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать двигаться сразу
           break;
+
 
         // Проезжаем на 10 см вперед на скорости data.turnspeed, чтобы встать на финишное поле.
         case command_finish:
@@ -600,7 +631,6 @@ void profiler(void) {
           guarddistance = command_param;
           if (guarddistance == 0) guarddistance = 100;
           guarddistance += startdistance;
-//          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;  // перезапуск, чтобы начать двигаться сразу
           break;
 
         case command_back:
@@ -608,7 +638,6 @@ void profiler(void) {
           Motor_Enable();
           guarddistance = CURRENT_DISTANCE - command_param;
           slowdistance  = CURRENT_DISTANCE - command_param/2;
-//          SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
           break;
 
         case command_benchmark:
@@ -711,6 +740,8 @@ void profiler(void) {
       if ((cmd_status = blind_entrance()) > 0) {
           state = idle;
           startdistance = CURRENT_DISTANCE + data.sensor_offset;
+//          guarddistance = startdistance + data.guarddist;
+//          state = segment_run;
           if (cmd_status > 1) {
               profiler_error_code = profiler_error_no_entrance;
               drop_command_queue();
@@ -749,10 +780,29 @@ void test_profile(void) {
   data_log_finish();
 }
 
+#ifdef PROFILER_PENDSV
 void PendSVInit(void) {
   NVIC_SetPriority(PendSV_IRQn, PendSV_IRQ_priority);
 }
+#else
+void PendSVInit(void) {
+  CMU_ClockEnable(cmuClock_TIMER3, 1);
+  NVIC_SetPriority(TIMER3_IRQn, PendSV_IRQ_priority);
+  NVIC_EnableIRQ(TIMER3_IRQn);
+  TIMER3->IEN = TIMER_IEN_CC0;
+}
+#endif
 
+#ifdef PROFILER_PENDSV
 void PendSV_Handler(void) {
   profiler();
 }
+#else
+
+void TIMER3_IRQHandler(void) {
+  if ((TIMER3->IEN & TIMER_IEN_CC0) && (TIMER3->IF & TIMER_IF_CC0)) {
+      TIMER3->IFC = TIMER_IFC_CC0;
+      profiler();
+  }
+}
+#endif

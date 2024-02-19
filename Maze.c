@@ -27,12 +27,12 @@ int length[MAX_PATH_LENGTH];
 map_cell_t map[MAX_MAP_SIZE];
 
 const unsigned int turn_sequence[][3] = {
-				{RIGHT_MASK, STRAIGHT_MASK, LEFT_MASK},
-				{LEFT_MASK, STRAIGHT_MASK, RIGHT_MASK},
-				{RIGHT_MASK, LEFT_MASK, STRAIGHT_MASK},
-				{LEFT_MASK, RIGHT_MASK, STRAIGHT_MASK},
-				{STRAIGHT_MASK, RIGHT_MASK, LEFT_MASK},
-				{STRAIGHT_MASK, LEFT_MASK, RIGHT_MASK},
+        {RIGHT_MASK, STRAIGHT_MASK, LEFT_MASK},
+        {LEFT_MASK, STRAIGHT_MASK, RIGHT_MASK},
+        {RIGHT_MASK, LEFT_MASK, STRAIGHT_MASK},
+        {LEFT_MASK, RIGHT_MASK, STRAIGHT_MASK},
+        {STRAIGHT_MASK, RIGHT_MASK, LEFT_MASK},
+        {STRAIGHT_MASK, LEFT_MASK, RIGHT_MASK},
 };
 
 // This function decides which way to turn during the learning phase of
@@ -59,12 +59,12 @@ rotation_dir_t SelectTurn(unsigned int available_directions, const unsigned int 
 }
 
 void update_coordinate (coordinate_t *current_coordinate, unsigned int length, bearing_dir_t moving_direction) {
-	switch (moving_direction) {
-		case north:	current_coordinate->north += length;	break;
-		case south:	current_coordinate->north -= length;	break;
-		case east:	current_coordinate->east += length;		break;
-		case west:	current_coordinate->east -= length;		break;
-	}
+  switch (moving_direction) {
+    case north: current_coordinate->north += length;  break;
+    case south: current_coordinate->north -= length;  break;
+    case east:  current_coordinate->east += length;   break;
+    case west:  current_coordinate->east -= length;   break;
+  }
 }
 
 unsigned int PlayMaze(void) {
@@ -79,24 +79,11 @@ unsigned int PlayMaze(void) {
     while (put_command(command_wait | (2 * FRAMESCANPERSECOND))) continue;
     while (put_command(command_benchmark | 1)) continue;
     while (put_command(command_entrance | cell_step)) continue;
+//    while (put_command(command_entrance | (data.length[step] & ~COMMAND_MASK))) continue;
+//    step++;
 
     while (step < data.pathlength) {
-//        char cmd_num[9];
         while (put_command(data.length[step])) continue;
-//        if (step < 8) {
-//            uint8_t hex_str[] = "0123456789ABCDEF";
-//            cmd_num[0] = hex_str[(data.length[step] >> 28) & 0x0F];
-//            cmd_num[1] = hex_str[(data.length[step] >> 24) & 0x0F];
-//            cmd_num[2] = hex_str[(data.length[step] >> 20) & 0x0F];
-//            cmd_num[3] = hex_str[(data.length[step] >> 16) & 0x0F];
-//            cmd_num[4] = hex_str[(data.length[step] >> 12) & 0x0F];
-//            cmd_num[5] = hex_str[(data.length[step] >> 8) & 0x0F];
-//            cmd_num[6] = hex_str[(data.length[step] >> 4) & 0x0F];
-//            cmd_num[7] = hex_str[(data.length[step] >> 0) & 0x0F];
-//            cmd_num[8] = 0;
-//            putstr(0, step, cmd_num, 0);
-//            update_display();
-//        }
         step++;
     };
     wall_distance = data.red_wall;
@@ -252,9 +239,9 @@ unsigned int solveMaze(void) {
               map[current_index].node_link [(move_direction + right) & TURN_MASK] = UNKNOWN;
 
               map[current_index].pass_count[(move_direction + back) & TURN_MASK] = 1;
-              map[current_index].pass_count[(move_direction+straight) & TURN_MASK]	=	(available & STRAIGHT_MASK) ? 0 : 4;
-              map[current_index].pass_count[(move_direction + left) & TURN_MASK] = 	(available & LEFT_MASK)     ? 0 : 4;
-              map[current_index].pass_count[(move_direction + right)& TURN_MASK] = 	(available & RIGHT_MASK)    ? 0 : 4;
+              map[current_index].pass_count[(move_direction+straight) & TURN_MASK]  = (available & STRAIGHT_MASK) ? 0 : 4;
+              map[current_index].pass_count[(move_direction + left) & TURN_MASK] =  (available & LEFT_MASK)     ? 0 : 4;
+              map[current_index].pass_count[(move_direction + right)& TURN_MASK] =  (available & RIGHT_MASK)    ? 0 : 4;
 
               if (++max_map_cell > MAX_MAP_SIZE) {
                   drop_command_queue();
@@ -339,9 +326,9 @@ unsigned int solveMaze(void) {
           count_green = 0; count_yellow = 0; count_red = 0;
           for (ii = 0; ii < 4; ii++) {
               switch (map[current_index].pass_count[ii]) {
-                case 0:	count_green++; 	break;
+                case 0: count_green++;  break;
                 case 1: count_yellow++; break;
-                case 2: count_red++;	break;
+                case 2: count_red++;  break;
               }
           }
           if (count_yellow == 3) skiplevel = 0; // есть одиночная нить пересекающая узел - возвращаемся
@@ -451,6 +438,7 @@ unsigned int solveMaze(void) {
                       wall_distance = data.red_wall;
                       if (wall_distance > 150) wall_distance = 150;
                       if (wall_distance > 50) {
+                          put_command(command_wait | (FRAMESCANPERSECOND/3));
                           put_command(command_back | (wall_distance - 50));
                       }
                       put_command(command_wait | (2 * FRAMESCANPERSECOND));
@@ -586,9 +574,23 @@ int TimeToRunStraight(int distance) {  // in milliseconds from millimeters.
 #define TURNCOST  ((TRACK_WIDE * 314 + 200) / 400)
 
 void InitBrakePath(void) {
+#ifdef SPEED_MM_PER_SECOND
+  // Расстояние, необходимое для торможения, если максимальная скорость не набирается:
+  // (V^2 - v^2) / (4 * a)  + distance/2
+  // V = speed * 0.1
+  // a = data.acceleration * 0.1 / FRAMESCANPERSECOND;
+  brakepath = ((long long)(data.maxspeed)*(speed - data.minspeed)+(data.acceleration*2*10*FRAMESCANPERSECOND))/
+                            (data.acceleration*4*10*FRAMESCANPERSECOND) + total_length/2;
+  // Расстояние, необходимое для торможения от максимальной скорости:
+  // (V^2 - v^2) / (2 * a)
+  brakepath2 = ((long long)(data.maxspeed + data.minspeed)*(data.maxspeed - data.minspeed)+(data.acceleration*10*FRAMESCANPERSECOND))/
+                            (data.acceleration*2*10*FRAMESCANPERSECOND);
+  // используем вариант с самым коротким тормозным путём
+#else
   // Расстояние, необходимое для торможения от максимальной скорости:
   // (220mm/100)^2 * (V^2 - v^2) / (2 * a * 400*60)
   brakepath = (data.maxmotor*data.maxmotor)/data.acceleration*121/1200000;
+#endif
   // turn length: 143mm wide * Pi / 4 = 112mm - each wheel run to turn 90 degree.
   data.turncost = TimeToRunStraight(TURNCOST);
 }
@@ -596,7 +598,7 @@ void InitBrakePath(void) {
 unsigned int Search_Short_Way_with_turns(void) {
 
   unsigned int k, min_index, destination, destination_map, break_flag = 0;
-  int	distance;
+  int distance;
   int prev_bearing, bearing;
 
   fill_data32_dma(0xffffffff, path_length_table, data.map_size*2);

@@ -55,8 +55,6 @@ void app_init(void)
   i2c_master_init();
   if (color_sensor_init()) no_color_sensor = 1;
   spi_eeprom_init();
-//  oled_ssd1327_Init();
-//  while(1);
   kbd_init();
   display_init();
   crc32_init();
@@ -120,6 +118,7 @@ void app_process_action(void) {
       {"Motor test      ", TestMotor,     execute},
       {"Tachometer  test", TestTachom,    execute},
       {"OPT3101 test    ", opt_main2,     execute},
+      {"Scan I2C        ", scan_i2c,      execute}
   };
   do_menu((menuitem_t*) main_menu_items, ((sizeof(main_menu_items)/sizeof(main_menu_items[0]))-1));
 }

@@ -25,7 +25,6 @@
 #include "crc.h"
 #include "Motor.h"
 #include "Reflectance.h"
-#include "profiler.h"
 
 #define NULL ((void* )0 )
 #define UNUSED(x) (void) (x)
@@ -319,12 +318,12 @@ uint32_t show_path(instance_t * instance, int * none) {
 }
 
 uint32_t write_eeprom_config(instance_t *instance, int * none) {
-		UNUSED(none);
-		UNUSED(instance);
+    UNUSED(none);
+    UNUSED(instance);
 
-		data.crc32 = calc_crc32((uint8_t*)&data, sizeof(data)-4);
-		spi_write_eeprom(EEPROM_COPY_ADDRESS, (uint8_t*) &data, sizeof(data));  // сначала записываем резерв
-		spi_write_eeprom(EEPROM_CONFIG_ADDRESS, (uint8_t*) &data, sizeof(data));	// теперь, нормальный вариант.
+    data.crc32 = calc_crc32((uint8_t*)&data, sizeof(data)-4);
+    spi_write_eeprom(EEPROM_COPY_ADDRESS, (uint8_t*) &data, sizeof(data));  // сначала записываем резерв
+    spi_write_eeprom(EEPROM_CONFIG_ADDRESS, (uint8_t*) &data, sizeof(data));  // теперь, нормальный вариант.
 
     return 0;
 }
@@ -372,7 +371,7 @@ uint32_t put_threshold(instance_t *instance, int * none) {
 }
 
 uint32_t drop_stack(instance_t *instance, int * none) {
-		UNUSED(none);
+    UNUSED(none);
     if (instance->stack_idx) {
         instance->stack_idx--;
         return 0;
@@ -381,21 +380,21 @@ uint32_t drop_stack(instance_t *instance, int * none) {
 }
 
 uint32_t dup_stack(instance_t *instance, int * none) {
-		UNUSED(none);
+    UNUSED(none);
     if (instance->stack_idx == 0) return 1;
     else {
         instance->stack[instance->stack_idx] = instance->stack[instance->stack_idx - 1];
         if (++instance->stack_idx < FORTH_STACK_SIZE) return 0;
         else {
-					instance->stack_idx = FORTH_STACK_SIZE -1;
-					return 1;
-				}
+          instance->stack_idx = FORTH_STACK_SIZE -1;
+          return 1;
+        }
     }    
 }
 
 uint32_t read_mem(instance_t *instance, int * none) {
     uint32_t val;
-		UNUSED(none);
+    UNUSED(none);
     if (instance->stack_idx == 0) return 1;
     val = instance->stack[instance->stack_idx - 1];
     instance->stack[instance->stack_idx - 1] = (uint32_t)(*(int32_t *)val);
@@ -428,7 +427,7 @@ uint32_t write_word(instance_t *instance, int * none) {
 
 uint32_t swap_stack(instance_t *instance, int * none) {
     uint32_t val;
-		UNUSED(none);
+    UNUSED(none);
     if (instance->stack_idx < 2) return 1;    
     val = instance->stack[instance->stack_idx - 1];
     instance->stack[instance->stack_idx - 1] = instance->stack[instance->stack_idx - 2];
@@ -437,7 +436,7 @@ uint32_t swap_stack(instance_t *instance, int * none) {
 }
 
 uint32_t sum_stack(instance_t *instance, int * none) {
-		UNUSED(none);
+    UNUSED(none);
     if (instance->stack_idx < 2) return 1;    
     instance->stack[instance->stack_idx - 2] += instance->stack[instance->stack_idx - 1];
     instance->stack_idx--;
@@ -477,7 +476,7 @@ uint32_t div_stack(instance_t *instance, int * none) {
 }
 
 uint32_t and_stack(instance_t *instance, int * none) {
-		UNUSED(none);
+    UNUSED(none);
     if (instance->stack_idx < 2) return 1;    
     instance->stack[instance->stack_idx - 2] &= instance->stack[instance->stack_idx - 1];
     instance->stack_idx--;
@@ -485,7 +484,7 @@ uint32_t and_stack(instance_t *instance, int * none) {
 }
 
 uint32_t or_stack(instance_t *instance, int * none) {
-		UNUSED(none);
+    UNUSED(none);
     if (instance->stack_idx < 2) return 1;    
     instance->stack[instance->stack_idx - 2] |= instance->stack[instance->stack_idx - 1];
     instance->stack_idx--;
@@ -493,7 +492,7 @@ uint32_t or_stack(instance_t *instance, int * none) {
 }
 
 uint32_t xor_stack(instance_t *instance, int * none) {
-		UNUSED(none);
+    UNUSED(none);
     if (instance->stack_idx < 2) return 1;    
     instance->stack[instance->stack_idx - 2] ^= instance->stack[instance->stack_idx - 1];
     instance->stack_idx--;
@@ -510,7 +509,7 @@ uint32_t show_stack(instance_t *instance, int * none) {
     char str[11];
     unsigned int val, i, j;
     UNUSED(none);
-		for (i = instance->stack_idx ; i > 0 ; i--) {
+    for (i = instance->stack_idx ; i > 0 ; i--) {
         val = instance->stack[i - 1];
         for (j = 8; j > 0; j--) {
             str[j-1] = (val & 0x0000000Ful) + '0';
@@ -519,46 +518,46 @@ uint32_t show_stack(instance_t *instance, int * none) {
         }
         str[8] = '\r';
         str[9] = '\n';
-				str[10] = '\0';
+        str[10] = '\0';
         instance->UART_OutString(str); /* Echo data back to PC */
     }
     return 0;
 }
 
 uint32_t print_space(instance_t *instance, int * none) {
-		UNUSED(none);
-		instance->UART_OutChar(' ');
-		return 0;
+    UNUSED(none);
+    instance->UART_OutChar(' ');
+    return 0;
 }
 
 uint32_t print_newline(instance_t *instance, int * none) {
-		UNUSED(none);
-		instance->UART_OutString("\r\n");
-		return 0;
+    UNUSED(none);
+    instance->UART_OutString("\r\n");
+    return 0;
 }
 
 void print_digit(instance_t *instance, uint32_t n){
 // This function uses recursion to convert number
 //   of unspecified length as an ASCII string
-		if(n >= instance->base){
-				print_digit(instance, n/instance->base);
-				n = n%instance->base;
-		}
-		if (n < 10)
-				instance->UART_OutChar(n+'0'); // n is between 0 and 9
-		else 
-				instance->UART_OutChar((n-10) + 'A'); // n is over 10 
+    if(n >= instance->base){
+        print_digit(instance, n/instance->base);
+        n = n%instance->base;
+    }
+    if (n < 10)
+        instance->UART_OutChar(n+'0'); // n is between 0 and 9
+    else
+        instance->UART_OutChar((n-10) + 'A'); // n is over 10
 }
 
 uint32_t OutNum(instance_t *instance, int * none) {
-		uint32_t val;
-		UNUSED(none);
+    uint32_t val;
+    UNUSED(none);
 
-		if (instance->stack_idx == 0) return 1;
-		val = instance->stack[--instance->stack_idx];
+    if (instance->stack_idx == 0) return 1;
+    val = instance->stack[--instance->stack_idx];
 
-		print_digit(instance, val);
-		return 0;
+    print_digit(instance, val);
+    return 0;
 }
 
 #define ISALPHA(X)  (((X) >= ' ') && ((X) <= 0x7f))
@@ -688,20 +687,20 @@ uint32_t speed_motor(instance_t *instance, int *none) {
 }
 
 uint32_t Battery(instance_t *instance, int * none) {
-		UNUSED(none);
-		if (instance->stack_idx < FORTH_STACK_SIZE - 1) {
-				instance->stack[instance->stack_idx++] = get_battery_voltage();
-				return 0;
-		} else {
-				return 1;
-		}		
+    UNUSED(none);
+    if (instance->stack_idx < FORTH_STACK_SIZE - 1) {
+        instance->stack[instance->stack_idx++] = get_battery_voltage();
+        return 0;
+    } else {
+        return 1;
+    }
 }
 
-uint32_t dump_map(instance_t *instance, int * none)	{
-	map_cell_t *ptr;
-	int ii, jj;
-	
-	UNUSED(none);
+uint32_t dump_map(instance_t *instance, int * none) {
+  map_cell_t *ptr;
+  int ii, jj;
+
+  UNUSED(none);
 //    spi_read_eeprom(ROM_map_addr, (uint8_t *)&map, sizeof(map));
     ptr = (map_cell_t*) &map;
     instance->UART_OutString("Index\tCoordX\tCoordY\tNorth\tEast\tSouth\tWest\r\n");
@@ -733,7 +732,7 @@ uint32_t dump_map(instance_t *instance, int * none)	{
         instance->UART_OutChar('\n');
         ptr++;
     }
-	return 0;
+  return 0;
 }
 
 uint32_t search_way(instance_t *instance, int * none) {
@@ -758,12 +757,6 @@ uint32_t validate_config(instance_t *instance, int * none) {
     return 0;
 }
 
-typedef struct {
-    char CmdName[12]; // name of command
-    uint32_t (*fnctPt)(instance_t *, int *); // to execute this command
-    int *param;
-}Cmd_t;
-
 const Cmd_t Table[]={
     {"drop",            &drop_stack, NULL},
     {"dup",             &dup_stack, NULL},
@@ -780,17 +773,19 @@ const Cmd_t Table[]={
     {"&",               &and_stack, NULL},
     {"|",               &or_stack, NULL},
     {"^",               &xor_stack, NULL},
-    {".",				        &OutNum, NULL},
-    {"sp",				      &print_space, NULL},
-    {"cr",				      &print_newline, NULL},
+    {".",               &OutNum, NULL},
+    {"sp",              &print_space, NULL},
+    {"cr",              &print_newline, NULL},
     {"show",            &show_stack, NULL},
     {"hex",             &set_base, (int *) 0x10},
     {"bin",             &set_base, (int *) 0x02},
     {"decimal",         &set_base, (int *) 0x0a},
     {"crc",             &crc_calculate, NULL},
-    {"vbat",			      &Battery,	NULL},
+    {"vbat",            &Battery, NULL},
     {"threshold",       &put_threshold, NULL},
     {"Threshold",       &put_on_stack, &data.threshold},
+    {"X_offset",        &put_on_stack, &data.x_offset},
+    {"Y_slope",         &put_on_stack, &data.y_slope},
     {"MAXspeed",        &put_on_stack, &data.maxspeed},
     {"MINspeed",        &put_on_stack, &data.minspeed},
     {"MAXmotor",        &put_on_stack, &data.maxmotor},
@@ -803,26 +798,26 @@ const Cmd_t Table[]={
     {"MotorKint",       &put_on_stack, &data.motor_Kint},
     {"OnWay",           &put_on_stack, &data.on_way},
     {"RunNumber",       &put_on_stack, &data.runnumber},
-    {"PathLength",		  &put_on_stack, &data.pathlength},
-    {"MapSize", 		    &put_on_stack, &data.map_size},
+    {"PathLength",      &put_on_stack, &data.pathlength},
+    {"MapSize",         &put_on_stack, &data.map_size},
     {"StartPoint",      &put_on_stack, &data.green_cell_nr},
     {"EndPoint",        &put_on_stack, &data.red_cell_nr},
-    {"IRlevel", 		    &put_on_stack, &data.ir_led_level},
-  	{"map", 		        &put_on_stack, (int*)&map},
-    {"LeftHand", 		    &put_on_stack, &data.lefthand},
-    {"ColorRed", 		    &put_on_stack, &data.color_red_thr},
-    {"ColorGreen", 		  &put_on_stack, &data.color_green_thr},
-    {"ColorBlue", 		  &put_on_stack, &data.color_blue_thr},
-    {"ColorThr", 		    &put_on_stack, &data.color_threshold},
+    {"IRlevel",         &put_on_stack, &data.ir_led_level},
+    {"map",             &put_on_stack, (int*)&map},
+    {"LeftHand",        &put_on_stack, &data.lefthand},
+    {"ColorRed",        &put_on_stack, &data.color_red_thr},
+    {"ColorGreen",      &put_on_stack, &data.color_green_thr},
+    {"ColorBlue",       &put_on_stack, &data.color_blue_thr},
+    {"ColorThr",        &put_on_stack, &data.color_threshold},
     {"ColorSat",        &put_on_stack, &data.color_saturation},
-    {"DstToleran", 		  &put_on_stack, &data.tolerance},
-    {"GuardDist", 		  &put_on_stack, &data.guarddist},
-    {"SensorOffs", 		  &put_on_stack, &data.sensor_offset},
-    {"IgnoreError", 	  &put_on_stack, &data.ignore_coordinate_error},
-    {"BrakePath", 		  &put_on_stack, &brakepath},
-    {"TimeToRun", 		  &put_on_stack, &data.timetorun},
-    {"TurnCost", 		    &put_on_stack, &data.turncost},
-    {"CrossCost", 		  &put_on_stack, &data.crosscost},
+    {"DstToleran",      &put_on_stack, &data.tolerance},
+    {"GuardDist",       &put_on_stack, &data.guarddist},
+    {"SensorOffs",      &put_on_stack, &data.sensor_offset},
+    {"IgnoreError",     &put_on_stack, &data.ignore_coordinate_error},
+    {"BrakePath",       &put_on_stack, &brakepath},
+    {"TimeToRun",       &put_on_stack, &data.timetorun},
+    {"TurnCost",        &put_on_stack, &data.turncost},
+    {"CrossCost",       &put_on_stack, &data.crosscost},
     {"StepCost",        &put_on_stack, &data.stepcost},
     {"CellStep",        &put_on_stack, &data.cell_step},
     {"Volt_calibr",     &put_on_stack, &data.volt_calibr},
@@ -841,39 +836,42 @@ const Cmd_t Table[]={
     {"dump_log",        &dump_log, (int *) 0},
     {"dump_addlog",     &dump_addlog, (int *) 0},
     {"dump_log_ft",     &dump_log, (int *) 1},
-    {"dump_map",		    &dump_map, NULL},
+    {"dump_map",        &dump_map, NULL},
     {"show_path",       &show_path, NULL},
     {"time_to_run",     &time_to_run_straight, NULL},
     {"init_brkpth",     &init_brakepath, NULL},
+#ifdef DEBUG_MAZE
     {"Available",       &put_on_stack, (int *)&node_configuration},
     {"Segment",         &put_on_stack, (int *)&segment_length},
     {"DataReady",       &put_on_stack, (int *)&profiler_data_ready},
     {"Left",            &put_on_stack, (int *)LEFT_MASK},
     {"Right",           &put_on_stack, (int *)RIGHT_MASK},
     {"Straight",        &put_on_stack, (int *)STRAIGHT_MASK},
+#endif
     {"list",            &list_values, NULL},
     {"words",           &list_cmd, NULL},
+    {"hello_world_12345", &list_cmd, NULL},
 };
 #define TABLE_SIZE (sizeof(Table)/sizeof(Table[0]))
 
 uint32_t list_cmd(instance_t *instance, int * none) {
-    char string_buf[64], *CmdName_ptr, *buf_ptr;
+    char string_buf[76], *CmdName_ptr, *buf_ptr;
     unsigned int charcount, i;
     
     UNUSED(none);
     buf_ptr = string_buf;
     for (i = 0; i < TABLE_SIZE; i++) {
-        charcount = 12;
-        CmdName_ptr = (char *)&(Table[i].CmdName);
+        charcount = 0;
+        CmdName_ptr = (char *)(Table[i].CmdName);
         while (*CmdName_ptr) {
             *buf_ptr++ = *CmdName_ptr++;
-            charcount--;
+            charcount++;
         }
-        while (charcount--) *buf_ptr++ = ' ';
+        while (charcount++ % 12) *buf_ptr++ = ' ';
         if ((((i+1) % 5) == 0) || (i == (TABLE_SIZE-1))) {
             *buf_ptr++ = '\r';
             *buf_ptr++ = '\n';
-						*buf_ptr = '\0';
+            *buf_ptr = '\0';
             instance->UART_OutString(string_buf);
             buf_ptr = string_buf;
         }
@@ -891,13 +889,13 @@ uint32_t list_values(instance_t *instance, int * none) {
         if (Table[i].fnctPt != &put_on_stack) continue;
         charcount = 14;
         buf_ptr  =  string_buf;
-        CmdName_ptr = (char *)&(Table[i].CmdName);
+        CmdName_ptr = (char *)(Table[i].CmdName);
         while (*CmdName_ptr) {
             *buf_ptr++ = *CmdName_ptr++;
             charcount--;
         }
         while (charcount--) *buf_ptr++ = ' ';
-				*buf_ptr = '\0';
+        *buf_ptr = '\0';
         instance->UART_OutString(string_buf);
         if (Table[i].fnctPt(instance, Table[i].param)) return 1;
         if (read_mem(instance, NULL)) return 1;
@@ -911,9 +909,9 @@ void parse_string(instance_t *instance) {
     unsigned int i, j, input_num, digit, invert_digit = 0;
     unsigned char *str_ptr, *in_ptr;
     str_ptr = instance->input_string;
-		instance->UART_OutString("\r\n");
+    instance->UART_OutString("\r\n");
 
-		while(*str_ptr) {
+    while(*str_ptr) {
         while (*str_ptr == ' ') ++str_ptr;
         if (*str_ptr == '\0') break;
         for (i = 0; i < TABLE_SIZE; i++) {
@@ -954,7 +952,7 @@ void parse_string(instance_t *instance) {
                     iserror = 1;
                     while ((*in_ptr != '\0') && (*in_ptr != ' ')) ++in_ptr;
                     *in_ptr = '\0'; // обрываем строку
-										instance->UART_OutString("Illegal command: \0");
+                    instance->UART_OutString("Illegal command: \0");
                     instance->UART_OutString((char*)str_ptr);
                     *str_ptr = '\0'; // обрываем строку
                     break;
@@ -975,16 +973,16 @@ void parse_string(instance_t *instance) {
 void BlueTooth_parse(void) {
   uint8_t control_char;
 #ifdef WITH_BGX
-	if (UART1_InStatus()) {
-		uint8_t control_char;
-		control_char = UART1_InChar();
-		if (STREAM_BIT) {
-			if (input_command(&BGX_UART1, control_char)) {
-				parse_string(&BGX_UART1);
-				UART1_OutString("\r\nGriever>"); // Echo data back to PC
-			}
-		}
-	}	
+  if (UART1_InStatus()) {
+    uint8_t control_char;
+    control_char = UART1_InChar();
+    if (STREAM_BIT) {
+      if (input_command(&BGX_UART1, control_char)) {
+        parse_string(&BGX_UART1);
+        UART1_OutString("\r\nGriever>"); // Echo data back to PC
+      }
+    }
+  }
 #endif
     if (UART0_In(&control_char) == 0) {
         if (input_command(&USBUART, control_char)) {

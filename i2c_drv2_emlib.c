@@ -34,8 +34,9 @@ policies, either expressed or implied, of the FreeBSD Project.
 #include "em_i2c.h"
 #include "i2c_drv.h"
 #include "resources.h"
+#include "app.h"
 
-#define I2C_DEV_NUM 1
+#define USART_DEV_NUM 1
 #define I2C_DEV     I2C1
 #define I2C_IRQn    I2C1_IRQn
 #define I2C_IRQHandler  I2C1_IRQHandler
@@ -98,9 +99,9 @@ void I2C_IRQHandler(void) {
 
 I2C_TransferSeq_TypeDef wr_seq;
 uint8_t reg_addr_buffer[2];
+unsigned int timeout_time;
 
 I2C_TransferReturn_TypeDef i2c_wr(uint8_t address, unsigned char * data, unsigned int length) {
-
   while (i2c_state == i2cTransferInProgress) continue;
 
   wr_seq.addr = address;
@@ -110,7 +111,13 @@ I2C_TransferReturn_TypeDef i2c_wr(uint8_t address, unsigned char * data, unsigne
 
   if (i2cTransferInProgress != (i2c_state = I2C_TransferInit(I2C_DEV, &wr_seq))) return 1;
 
-  while (i2c_state == i2cTransferInProgress) continue;
+  timeout_time = sys_time + 5*SCANPERSECOND;
+  while (i2c_state == i2cTransferInProgress) {
+      if (timeout_time < sys_time) {
+          I2C_Reset(I2C_DEV);
+          return 1;
+      }
+  }
   return i2c_state;
 }
 
@@ -125,7 +132,13 @@ I2C_TransferReturn_TypeDef i2c_rd(uint8_t address, unsigned char * data, unsigne
 
   if (i2cTransferInProgress != (i2c_state = I2C_TransferInit(I2C_DEV, &wr_seq))) return 1;
 
-  while (i2c_state == i2cTransferInProgress) continue;
+  timeout_time = sys_time + 5*SCANPERSECOND;
+  while (i2c_state == i2cTransferInProgress) {
+      if (timeout_time < sys_time) {
+          I2C_Reset(I2C_DEV);
+          return 1;
+      }
+  }
   return i2c_state;
 }
 
@@ -145,7 +158,13 @@ I2C_TransferReturn_TypeDef i2c_wr_reg(uint8_t address, uint8_t reg_addr, unsigne
 
   if (i2cTransferInProgress != (i2c_state = I2C_TransferInit(I2C_DEV, &wr_seq))) return 1;
 
-  while (i2c_state == i2cTransferInProgress) continue;
+  timeout_time = sys_time + 5*SCANPERSECOND;
+  while (i2c_state == i2cTransferInProgress) {
+      if (timeout_time < sys_time) {
+          I2C_Reset(I2C_DEV);
+          return 1;
+      }
+  }
   return i2c_state;
 }
 
@@ -165,7 +184,13 @@ I2C_TransferReturn_TypeDef i2c_rd_reg(uint8_t address, uint8_t reg_addr, unsigne
 
   if (i2cTransferInProgress != (i2c_state = I2C_TransferInit(I2C_DEV, &wr_seq))) return 1;
 
-  while (i2c_state == i2cTransferInProgress) continue;
+  timeout_time = sys_time + 5*SCANPERSECOND;
+  while (i2c_state == i2cTransferInProgress) {
+      if (timeout_time < sys_time) {
+          I2C_Reset(I2C_DEV);
+          return 1;
+      }
+  }
   return i2c_state;
 }
 
@@ -187,7 +212,13 @@ I2C_TransferReturn_TypeDef i2c_wr_reg16(uint8_t address, uint16_t reg_addr, unsi
 
   if (i2cTransferInProgress != (i2c_state = I2C_TransferInit(I2C_DEV, &wr_seq))) return 1;
 
-  while (i2c_state == i2cTransferInProgress) continue;
+  timeout_time = sys_time + 5*SCANPERSECOND;
+  while (i2c_state == i2cTransferInProgress) {
+      if (timeout_time < sys_time) {
+          I2C_Reset(I2C_DEV);
+          return 1;
+      }
+  }
   return i2c_state;
 }
 
@@ -209,10 +240,35 @@ I2C_TransferReturn_TypeDef i2c_rd_reg16(uint8_t address, uint16_t reg_addr, unsi
 
   if (i2cTransferInProgress != (i2c_state = I2C_TransferInit(I2C_DEV, &wr_seq))) return 1;
 
-  while (i2c_state == i2cTransferInProgress) continue;
+  timeout_time = sys_time + 5*SCANPERSECOND;
+  while (i2c_state == i2cTransferInProgress) {
+      if (timeout_time < sys_time) {
+          I2C_Reset(I2C_DEV);
+          return 1;
+      }
+  }
   return i2c_state;
 }
 
+#include "display.h"
+#include "keyboard.h"
+
+void scan_i2c(void) {
+  char data[16], stringno = 0, hexstring[] = "0123456789abcdef";
+  squareXY(0, 0, 127, 63, 0);
+  update_display();
+  for (uint8_t ii = 0; ii < 127; ii++) {
+      if (i2c_rd(ii << 1, (unsigned char*)data, 1) == i2cTransferDone) {
+          data[0] = '0'; data[1] = 'x';
+          data[2] = hexstring[(ii >> 4) & 0xF];
+          data[3] = hexstring[ii & 0xF];
+          data[4] = '\0';
+          putstr(0, stringno++, data, 0);
+          update_display();
+      }
+  }
+  while (kbdread() != KEY_DOWN) continue;
+}
 
 #ifdef OLED_I2C
 #ifdef SSD1306

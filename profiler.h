@@ -23,10 +23,22 @@ enum commands {
     command_back    =   0x60000000,
     // Старт или останов измерения времени.
     command_benchmark = 0x70000000,
+    // Специальные команды
+    command_half    =   0x80000000,
+    command_diagonal=   0x81000000,
+    // Повороты 0 - влево, 1 - вправо
+    command_turn45sd=   0x82000000,
+    command_turn45ds=   0x83000000,
+    command_turn90ss=   0x84000000,
+    command_turn90dd=   0x85000000,
+    command_turn135sd=  0x86000000,
+    command_turn135ds=  0x87000000,
+    command_Uturnss =   0x88000000,
+    //
     command_eof     =   0xF0000000
 };
 
-#define COMMAND_MASK    0xF0000000
+#define COMMAND_MASK    0xFF000000
 
 void block_profiler(unsigned int state);
 unsigned int put_command(unsigned int command_data);

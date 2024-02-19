@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="uc.module.setup.componentSetup.com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt.debug#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:10.3.1.20210824.gcc" propertyScope="project">
-  <folder name="gecko_sdk_4.2.0">
+  <folder name="gecko_sdk_4.3.2">
     <folder name="platform">
       <folder name="Device">
         <folder name="SiliconLabs">
           <folder name="EFM32GG12B">
             <folder name="Source">
-              <file name="system_efm32gg12b.c" uri="studio:/sdk/platform/Device/SiliconLabs/EFM32GG12B/Source/system_efm32gg12b.c"/>
               <file name="startup_efm32gg12b.c" uri="studio:/sdk/platform/Device/SiliconLabs/EFM32GG12B/Source/startup_efm32gg12b.c"/>
+              <file name="system_efm32gg12b.c" uri="studio:/sdk/platform/Device/SiliconLabs/EFM32GG12B/Source/system_efm32gg12b.c"/>
             </folder>
             <folder name="Include">
               <file name="efm32gg12b810f1024gm64.h" uri="studio:/sdk/platform/Device/SiliconLabs/EFM32GG12B/Include/efm32gg12b810f1024gm64.h"/>
@@ -88,77 +88,6 @@
             <file name="mpu_armv7.h" uri="studio:/sdk/platform/CMSIS/Core/Include/mpu_armv7.h"/>
           </folder>
         </folder>
-        <folder name="DSP">
-          <folder name="Include">
-            <folder name="dsp">
-              <file name="basic_math_functions.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/basic_math_functions.h"/>
-              <file name="basic_math_functions_f16.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/basic_math_functions_f16.h"/>
-              <file name="bayes_functions.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/bayes_functions.h"/>
-              <file name="bayes_functions_f16.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/bayes_functions_f16.h"/>
-              <file name="complex_math_functions.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/complex_math_functions.h"/>
-              <file name="complex_math_functions_f16.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/complex_math_functions_f16.h"/>
-              <file name="controller_functions.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/controller_functions.h"/>
-              <file name="controller_functions_f16.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/controller_functions_f16.h"/>
-              <file name="distance_functions.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/distance_functions.h"/>
-              <file name="distance_functions_f16.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/distance_functions_f16.h"/>
-              <file name="fast_math_functions.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/fast_math_functions.h"/>
-              <file name="fast_math_functions_f16.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/fast_math_functions_f16.h"/>
-              <file name="filtering_functions.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/filtering_functions.h"/>
-              <file name="filtering_functions_f16.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/filtering_functions_f16.h"/>
-              <file name="interpolation_functions.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/interpolation_functions.h"/>
-              <file name="interpolation_functions_f16.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/interpolation_functions_f16.h"/>
-              <file name="matrix_functions.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/matrix_functions.h"/>
-              <file name="matrix_functions_f16.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/matrix_functions_f16.h"/>
-              <file name="none.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/none.h"/>
-              <file name="quaternion_math_functions.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/quaternion_math_functions.h"/>
-              <file name="statistics_functions.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/statistics_functions.h"/>
-              <file name="statistics_functions_f16.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/statistics_functions_f16.h"/>
-              <file name="support_functions.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/support_functions.h"/>
-              <file name="support_functions_f16.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/support_functions_f16.h"/>
-              <file name="svm_defines.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/svm_defines.h"/>
-              <file name="svm_functions.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/svm_functions.h"/>
-              <file name="svm_functions_f16.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/svm_functions_f16.h"/>
-              <file name="transform_functions.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/transform_functions.h"/>
-              <file name="transform_functions_f16.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/transform_functions_f16.h"/>
-              <file name="utils.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp/utils.h"/>
-            </folder>
-            <file name="arm_common_tables.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/arm_common_tables.h"/>
-            <file name="arm_common_tables_f16.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/arm_common_tables_f16.h"/>
-            <file name="arm_const_structs.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/arm_const_structs.h"/>
-            <file name="arm_const_structs_f16.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/arm_const_structs_f16.h"/>
-            <file name="arm_helium_utils.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/arm_helium_utils.h"/>
-            <file name="arm_math.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/arm_math.h"/>
-            <file name="arm_math_f16.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/arm_math_f16.h"/>
-            <file name="arm_math_memory.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/arm_math_memory.h"/>
-            <file name="arm_math_types.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/arm_math_types.h"/>
-            <file name="arm_math_types_f16.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/arm_math_types_f16.h"/>
-            <file name="arm_mve_tables.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/arm_mve_tables.h"/>
-            <file name="arm_mve_tables_f16.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/arm_mve_tables_f16.h"/>
-            <file name="arm_vec_math.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/arm_vec_math.h"/>
-            <file name="arm_vec_math_f16.h" uri="studio:/sdk/platform/CMSIS/DSP/Include/arm_vec_math_f16.h"/>
-          </folder>
-        </folder>
-        <folder name="libs">
-          <folder name="GCC">
-            <folder name="cortex-m4">
-              <file name="libCMSISDSPBasicMath.a" uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPBasicMath.a"/>
-              <file name="libCMSISDSPBayes.a" uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPBayes.a"/>
-              <file name="libCMSISDSPCommon.a" uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPCommon.a"/>
-              <file name="libCMSISDSPComplexMath.a" uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPComplexMath.a"/>
-              <file name="libCMSISDSPController.a" uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPController.a"/>
-              <file name="libCMSISDSPDistance.a" uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPDistance.a"/>
-              <file name="libCMSISDSPFastMath.a" uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPFastMath.a"/>
-              <file name="libCMSISDSPFiltering.a" uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPFiltering.a"/>
-              <file name="libCMSISDSPInterpolation.a" uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPInterpolation.a"/>
-              <file name="libCMSISDSPMatrix.a" uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPMatrix.a"/>
-              <file name="libCMSISDSPQuaternionMath.a" uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPQuaternionMath.a"/>
-              <file name="libCMSISDSPStatistics.a" uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPStatistics.a"/>
-              <file name="libCMSISDSPSupport.a" uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPSupport.a"/>
-              <file name="libCMSISDSPSVM.a" uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPSVM.a"/>
-              <file name="libCMSISDSPTransform.a" uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPTransform.a"/>
-            </folder>
-          </folder>
-        </folder>
       </folder>
       <folder name="service">
         <folder name="device_init">
@@ -201,6 +130,7 @@
           <file name="em_ramfunc.h" uri="studio:/sdk/platform/emlib/inc/em_ramfunc.h"/>
           <file name="em_version.h" uri="studio:/sdk/platform/emlib/inc/em_version.h"/>
           <file name="em_core.h" uri="studio:/sdk/platform/emlib/inc/em_core.h"/>
+          <file name="em_core_generic.h" uri="studio:/sdk/platform/emlib/inc/em_core_generic.h"/>
           <file name="em_emu.h" uri="studio:/sdk/platform/emlib/inc/em_emu.h"/>
           <file name="em_gpio.h" uri="studio:/sdk/platform/emlib/inc/em_gpio.h"/>
           <file name="em_i2c.h" uri="studio:/sdk/platform/emlib/inc/em_i2c.h"/>
@@ -208,6 +138,7 @@
           <file name="em_msc.h" uri="studio:/sdk/platform/emlib/inc/em_msc.h"/>
           <file name="em_msc_compat.h" uri="studio:/sdk/platform/emlib/inc/em_msc_compat.h"/>
           <file name="em_system.h" uri="studio:/sdk/platform/emlib/inc/em_system.h"/>
+          <file name="em_system_generic.h" uri="studio:/sdk/platform/emlib/inc/em_system_generic.h"/>
         </folder>
         <folder name="src">
           <file name="em_cmu.c" uri="studio:/sdk/platform/emlib/src/em_cmu.c"/>
@@ -254,6 +185,83 @@
         </folder>
       </folder>
     </folder>
+    <folder name="util">
+      <folder name="third_party">
+        <folder name="cmsis_dsp">
+          <folder name="DSP">
+            <folder name="Include">
+              <folder name="dsp">
+                <file name="basic_math_functions.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/basic_math_functions.h"/>
+                <file name="basic_math_functions_f16.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/basic_math_functions_f16.h"/>
+                <file name="bayes_functions.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/bayes_functions.h"/>
+                <file name="bayes_functions_f16.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/bayes_functions_f16.h"/>
+                <file name="complex_math_functions.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/complex_math_functions.h"/>
+                <file name="complex_math_functions_f16.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/complex_math_functions_f16.h"/>
+                <file name="controller_functions.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/controller_functions.h"/>
+                <file name="controller_functions_f16.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/controller_functions_f16.h"/>
+                <file name="distance_functions.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/distance_functions.h"/>
+                <file name="distance_functions_f16.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/distance_functions_f16.h"/>
+                <file name="fast_math_functions.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/fast_math_functions.h"/>
+                <file name="fast_math_functions_f16.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/fast_math_functions_f16.h"/>
+                <file name="filtering_functions.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/filtering_functions.h"/>
+                <file name="filtering_functions_f16.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/filtering_functions_f16.h"/>
+                <file name="interpolation_functions.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/interpolation_functions.h"/>
+                <file name="interpolation_functions_f16.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/interpolation_functions_f16.h"/>
+                <file name="matrix_functions.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/matrix_functions.h"/>
+                <file name="matrix_functions_f16.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/matrix_functions_f16.h"/>
+                <file name="none.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/none.h"/>
+                <file name="quaternion_math_functions.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/quaternion_math_functions.h"/>
+                <file name="statistics_functions.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/statistics_functions.h"/>
+                <file name="statistics_functions_f16.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/statistics_functions_f16.h"/>
+                <file name="support_functions.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/support_functions.h"/>
+                <file name="support_functions_f16.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/support_functions_f16.h"/>
+                <file name="svm_defines.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/svm_defines.h"/>
+                <file name="svm_functions.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/svm_functions.h"/>
+                <file name="svm_functions_f16.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/svm_functions_f16.h"/>
+                <file name="transform_functions.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/transform_functions.h"/>
+                <file name="transform_functions_f16.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/transform_functions_f16.h"/>
+                <file name="utils.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp/utils.h"/>
+              </folder>
+              <file name="arm_common_tables.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/arm_common_tables.h"/>
+              <file name="arm_common_tables_f16.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/arm_common_tables_f16.h"/>
+              <file name="arm_const_structs.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/arm_const_structs.h"/>
+              <file name="arm_const_structs_f16.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/arm_const_structs_f16.h"/>
+              <file name="arm_helium_utils.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/arm_helium_utils.h"/>
+              <file name="arm_math.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/arm_math.h"/>
+              <file name="arm_math_f16.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/arm_math_f16.h"/>
+              <file name="arm_math_memory.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/arm_math_memory.h"/>
+              <file name="arm_math_types.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/arm_math_types.h"/>
+              <file name="arm_math_types_f16.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/arm_math_types_f16.h"/>
+              <file name="arm_mve_tables.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/arm_mve_tables.h"/>
+              <file name="arm_mve_tables_f16.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/arm_mve_tables_f16.h"/>
+              <file name="arm_vec_math.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/arm_vec_math.h"/>
+              <file name="arm_vec_math_f16.h" uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/arm_vec_math_f16.h"/>
+            </folder>
+          </folder>
+          <folder name="libs">
+            <folder name="GCC">
+              <folder name="cortex-m4">
+                <file name="libCMSISDSPBasicMath.a" uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPBasicMath.a"/>
+                <file name="libCMSISDSPBayes.a" uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPBayes.a"/>
+                <file name="libCMSISDSPCommon.a" uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPCommon.a"/>
+                <file name="libCMSISDSPComplexMath.a" uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPComplexMath.a"/>
+                <file name="libCMSISDSPController.a" uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPController.a"/>
+                <file name="libCMSISDSPDistance.a" uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPDistance.a"/>
+                <file name="libCMSISDSPFastMath.a" uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPFastMath.a"/>
+                <file name="libCMSISDSPFiltering.a" uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPFiltering.a"/>
+                <file name="libCMSISDSPInterpolation.a" uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPInterpolation.a"/>
+                <file name="libCMSISDSPMatrix.a" uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPMatrix.a"/>
+                <file name="libCMSISDSPQuaternionMath.a" uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPQuaternionMath.a"/>
+                <file name="libCMSISDSPStatistics.a" uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPStatistics.a"/>
+                <file name="libCMSISDSPSupport.a" uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPSupport.a"/>
+                <file name="libCMSISDSPSVM.a" uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPSVM.a"/>
+                <file name="libCMSISDSPTransform.a" uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPTransform.a"/>
+              </folder>
+            </folder>
+          </folder>
+        </folder>
+      </folder>
+    </folder>
   </folder>
   <file name="app.c" linked="false" uri="studio:/project/app.c"/>
   <file name="main.c" linked="false" uri="studio:/project/main.c"/>
@@ -262,8 +270,8 @@
   <includePath uri="studio:/sdk/platform/Device/SiliconLabs/EFM32GG12B/Include"/>
   <includePath uri="studio:/sdk/hardware/board/inc"/>
   <includePath uri="studio:/sdk/platform/CMSIS/Core/Include"/>
-  <includePath uri="studio:/sdk/platform/CMSIS/DSP/Include"/>
-  <includePath uri="studio:/sdk/platform/CMSIS/DSP/Include/dsp"/>
+  <includePath uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include"/>
+  <includePath uri="studio:/sdk/util/third_party/cmsis_dsp/DSP/Include/dsp"/>
   <includePath uri="studio:/sdk/platform/service/device_init/inc"/>
   <includePath uri="studio:/sdk/platform/emlib/inc"/>
   <includePath uri="studio:/sdk/platform/common/inc"/>
@@ -274,21 +282,21 @@
   <macroDefinition name="SL_BOARD_NAME" value="&quot;BRD2207A&quot;"/>
   <macroDefinition name="SL_BOARD_REV" value="&quot;A03&quot;"/>
   <macroDefinition name="SL_COMPONENT_CATALOG_PRESENT"/>
-  <libraryFile uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPBasicMath.a"/>
-  <libraryFile uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPBayes.a"/>
-  <libraryFile uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPCommon.a"/>
-  <libraryFile uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPComplexMath.a"/>
-  <libraryFile uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPController.a"/>
-  <libraryFile uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPDistance.a"/>
-  <libraryFile uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPFastMath.a"/>
-  <libraryFile uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPFiltering.a"/>
-  <libraryFile uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPInterpolation.a"/>
-  <libraryFile uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPMatrix.a"/>
-  <libraryFile uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPQuaternionMath.a"/>
-  <libraryFile uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPStatistics.a"/>
-  <libraryFile uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPSupport.a"/>
-  <libraryFile uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPSVM.a"/>
-  <libraryFile uri="studio:/sdk/platform/CMSIS/libs/GCC/cortex-m4/libCMSISDSPTransform.a"/>
+  <libraryFile uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPBasicMath.a"/>
+  <libraryFile uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPBayes.a"/>
+  <libraryFile uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPCommon.a"/>
+  <libraryFile uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPComplexMath.a"/>
+  <libraryFile uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPController.a"/>
+  <libraryFile uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPDistance.a"/>
+  <libraryFile uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPFastMath.a"/>
+  <libraryFile uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPFiltering.a"/>
+  <libraryFile uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPInterpolation.a"/>
+  <libraryFile uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPMatrix.a"/>
+  <libraryFile uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPQuaternionMath.a"/>
+  <libraryFile uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPStatistics.a"/>
+  <libraryFile uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPSupport.a"/>
+  <libraryFile uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPSVM.a"/>
+  <libraryFile uri="studio:/sdk/util/third_party/cmsis_dsp/libs/GCC/cortex-m4/libCMSISDSPTransform.a"/>
   <libraryFile name="gcc"/>
   <libraryFile name="c"/>
   <libraryFile name="m"/>

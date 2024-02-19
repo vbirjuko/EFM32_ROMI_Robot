@@ -9,26 +9,26 @@
 #define TCS_SF        0x66
 
 enum classReg {
-  ENABLE = 0x00,
-  ATIME = 0x01,
-  WTIME = 0x03,
-  AILTL = 0x04,
-  AILTH = 0x05,
-  AIHTL = 0x06,
-  AIHTH = 0x07,
-  PERS = 0x0C,
-  CONFIG = 0x0D,
-  CONTROL = 0x0F,
-  ID = 0x12,
-  STATUS = 0x13,
-  CDATAL = 0x14,
-  CDATAH = 0x15,
-  RDATAL = 0x16,
-  RDATAH = 0x17,
-  GDATAL = 0x18,
-  GDATAH = 0x19,
-  BDATAL = 0x1A,
-  BDATAH = 0x1B,
+  ENABLE = 0x00,        // Enables states and interrupts
+  ATIME = 0x01,         // RGBC time
+  WTIME = 0x03,         // Wait time
+  AILTL = 0x04,         // Clear interrupt low threshold low byte
+  AILTH = 0x05,         // Clear interrupt low threshold high byte
+  AIHTL = 0x06,         // Clear interrupt high threshold low byte
+  AIHTH = 0x07,         // Clear interrupt high threshold high byte
+  PERS = 0x0C,          // Interrupt persistence filter
+  CONFIG = 0x0D,        // Configuration
+  CONTROL = 0x0F,       // Control
+  ID = 0x12,            // Device ID
+  STATUS = 0x13,        // Device status
+  CDATAL = 0x14,        // Clear data low byte
+  CDATAH = 0x15,        // Clear data high byte
+  RDATAL = 0x16,        // Red data low byte
+  RDATAH = 0x17,        // Red data high byte
+  GDATAL = 0x18,        // Green data low byte
+  GDATAH = 0x19,        // Green data high byte
+  BDATAL = 0x1A,        // Blue data low byte
+  BDATAH = 0x1B,        // Blue data high byte
 };
 
 enum classMask {
@@ -52,7 +52,7 @@ static uint16_t *log_array_ptr = 0;
 unsigned int color_sensor_init(void) {
   param = 0;
   i2c_rd_reg(TCS_ADDR, (TCS_COMMAND | ID), &param, 1);
-  if (param != 0x44) return 1;
+  if ((param != 0x44) && (param != 0x4D)) return 1;
 // ATIME = 256 − (Integration Time / 2.4) ms
   param = 256 - (75*5 + 6)/12 ; // ATIME 75 ms
   i2c_wr_reg(TCS_ADDR, TCS_COMMAND | ATIME, &param, sizeof(param));
